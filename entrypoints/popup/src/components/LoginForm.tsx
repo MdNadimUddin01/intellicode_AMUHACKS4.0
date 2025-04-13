@@ -1,9 +1,11 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { LoginFormProps } from '../types/props';
+import axios from 'axios';
+import { backendUrl } from '../../environment';
 
 interface FormState {
-  email: string;
+  username: string;
   password: string;
   showPassword: boolean;
   rememberMe: boolean;
@@ -12,26 +14,36 @@ interface FormState {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onTeacherLogin, onStudentLogin, onSignupClick, onBackClick }) => {
   // Form state using useState with TypeScript
-  const [email, setEmail] = useState<string>('');
+  const [username, setusername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleSubmit = (): void => {
+  const storedUser = localStorage.getItem("user");
+  const [user , setUser] = useState(storedUser ? JSON.parse(storedUser) : null);
+  
+  const handleSubmit = async(): Promise<void> => {
       // e.preventDefault();
       setIsLoading(true);
       // Simulating API call
+
+      const {data} = await axios.post(backendUrl + "/login" , {username , password});
+
+      localStorage.setItem("token" , JSON.stringify(data.token));
+      localStorage.setItem("user" , JSON.stringify(data.user));
+      
       setTimeout(() => {
-        console.log('Login attempt with:', { email, password, rememberMe });
+        console.log('Login attempt with:', { username, password, rememberMe });
         setIsLoading(false);
       }, 1500);
 
       onTeacherLogin();
+      
   };
 
-  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    setEmail(e.target.value);
+  const handleusernameChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    setusername(e.target.value);
   };
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -59,20 +71,20 @@ const LoginForm: React.FC<LoginFormProps> = ({ onTeacherLogin, onStudentLogin, o
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              username
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Mail size={16} className="text-gray-400" />
               </div>
               <input
-                id="email"
-                type="email"
+                id="username"
+                type="username"
                 className="pl-10 w-full py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 placeholder="you@example.com"
-                value={email}
-                onChange={handleEmailChange}
+                value={username}
+                onChange={handleusernameChange}
                 required
               />
             </div>

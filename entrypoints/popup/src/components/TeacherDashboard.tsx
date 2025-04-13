@@ -1,19 +1,21 @@
 import { useState, useEffect } from "react";
 import { Search, Clock, Users, Bell, BarChart, AlertTriangle, CheckCircle, Menu, X, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { TeacherDashboardProps } from "../types/props";
+import axios from "axios";
+import { backendUrl } from "../../environment";
 
 // Define TypeScript interfaces
-interface Student {
-  id: number;
-  name: string;
-  email: string;
-  focus: number;
-  avatar: string;
-  joinTime: string;
-  isActive: boolean;
-  hasCamera: boolean;
-  hasMic: boolean;
-}
+// interface Student {
+//   id: number;
+//   name: string;
+//   email: string;
+//   focus: number;
+//   avatar: string;
+//   joinTime: string;
+//   isActive: boolean;
+//   hasCamera: boolean;
+//   hasMic: boolean;
+// }
 
 interface WindowSize {
   width: number;
@@ -35,8 +37,9 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isFiltersVisible, setIsFiltersVisible] = useState<boolean>(false);
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
-  
-  const [students, setStudents] = useState<Student[]>([
+  const [meetingCode , setMeetingCode] = useState("");
+
+  const [students, setStudents] = useState<any[]>([
     {
       id: 1,
       name: "Emily Johnson",
@@ -93,6 +96,49 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
       hasMic: true
     },
   ]);
+
+  const handleMeeting = async():Promise<void> => {
+
+    try {
+
+        const {data} = await axios.post(backendUrl + `/classroom/${meetingCode}/deactivate`)
+        localStorage.removeItem("teacherMeetingInfo");
+
+    } catch (error) {
+      console.log(error);
+    }    
+
+  }
+
+  async function fetchParticipants():Promise<void>{
+
+    try {
+
+      const {data} = await axios.get(backendUrl + `/classroom/${meetingCode}/participants`);
+      localStorage.setItem("participants" , JSON.stringify(data));
+
+
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  
+  async function allFocusData(){
+
+    try {
+
+      const {data} = await axios.get(backendUrl + `classroom/${meetingCode}/get-all-focus-data`);
+      localStorage.setItem("partcipantsFocusData" , JSON.stringify(data));
+
+    } catch (error) {
+      console.log(error)
+    }
+    
+  }
+
+  useEffect(() => {
+    fetchParticipants();
+  },[])
 
   // Handle window resize
   useEffect(() => {
@@ -277,7 +323,7 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
               </div>
               
               <div className="pt-4 flex flex-col gap-4 border-t border-gray-200">
-                <button className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm">
+                <button onClick={handleMeeting} className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm">
                   End Meeting
                 </button>
                 <button className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm">

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Clock, X, Mic, MicOff, Video, VideoOff, ChevronDown, ChevronUp } from "lucide-react";
 import FocusDetection from "./FocusDetection";
+import { backendUrl } from "../../environment";
+import axios from "axios";
 
 const StudentMeetingPage = () => {
   const [isMuted, setIsMuted] = useState(false);
@@ -8,6 +10,7 @@ const StudentMeetingPage = () => {
   const [meetingTime, setMeetingTime] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
+  const [meetingCode , setMeetingCode] = useState("");
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
@@ -25,6 +28,20 @@ const StudentMeetingPage = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  async function handleLogout(){
+    setShowExitConfirm(false);
+
+    try {
+      
+      const {data} = await axios.post(backendUrl + `/classroom/${meetingCode}/leave`);
+      localStorage.removeItem("studentMeetingInfo");
+
+    } catch (error) {
+      console.log(error);
+    }
+
+  }
 
   // Format time as mm:ss
   const formatTime = (timeInSeconds:any) => {
@@ -60,7 +77,7 @@ const StudentMeetingPage = () => {
           </div>
           
           <div className={`text-xs sm:text-sm bg-blue-500 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${isSmallScreen ? "ml-auto mt-1" : ""}`}>
-            ID: XYZ123
+            ID: meetingCode
           </div>
         </div>
       </header>
@@ -153,10 +170,7 @@ const StudentMeetingPage = () => {
                 Cancel
               </button>
               <button 
-                onClick={() => {
-                  setShowExitConfirm(false);
-                  // Here you would typically navigate away or close the meeting
-                }}
+                onClick={handleLogout}
                 className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs sm:text-sm">
                 Leave
               </button>

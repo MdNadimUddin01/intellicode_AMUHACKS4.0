@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, User, UserCheck } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, User, UserCheck, User2 } from 'lucide-react';
 import { SignupFormProps } from '../types/props';
+import { backendUrl } from '../../environment';
+import axios from 'axios';
 
 export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setusername] = useState('');
   const [role, setRole] = useState('student');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
 
-  const handleSubmit = () => {
+  const handleSubmit = async():Promise<void> => {
     
     if (password !== confirmPassword) {
       setPasswordMatch(false);
@@ -19,8 +22,12 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
     }
     
     setIsLoading(true);
-    
+
+    const {data} = await axios.post(backendUrl + "/register" , {email , password , username , role});
+    localStorage.setItem("token" , JSON.stringify(data.token));
+    localStorage.setItem("user" , JSON.stringify(data.user));
     // Simulating API call
+    
     setTimeout(() => {
       console.log('Signup attempt with:', { email, password, role });
       setIsLoading(false);
@@ -102,6 +109,26 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              User Name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User2 size={16} className="text-gray-400" />
+              </div>
+              <input
+                id="username"
+                type="text"
+                className="pl-10 w-full py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="abc"
+                value={username}
+                onChange={(e) => setusername(e.target.value)}
                 required
               />
             </div>

@@ -1,5 +1,7 @@
 import React, { JSX, useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import axios from "axios";
+import { backendUrl } from "../../environment";
 
 // Define types for face landmarks and vectors
 interface Landmark {
@@ -33,7 +35,24 @@ export default function FocusDetection(): JSX.Element {
   const [metricsInfo, setMetricsInfo] = useState<string>("");
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [cameraActive, setCameraActive] = useState<boolean>(false);
+  const [meetingCode, setMeetingCode] = useState("");
+  const storedUser = localStorage.getItem("user");
+  const [user, setUser] = useState(storedUser ? JSON.parse(storedUser) : null);
 
+  async function saveFocusData() {
+    try {
+      
+      const data = await axios.post(
+        backendUrl + `classroom/${meetingCode}/focus-data`,
+        { student_name: user.username ,  data:{focusStatus , focusScore , metricsInfo}}
+      );
+
+
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  setTimeout(() => {}, 10000);
   // Track face vectors and calibration values
   const neutralPitchRef = useRef<number>(0);
   const neutralYawRef = useRef<number>(0);
@@ -73,9 +92,14 @@ export default function FocusDetection(): JSX.Element {
   };
 
   // Helper functions
-  const average = (arr: number[]): number => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const average = (arr: number[]): number =>
+    arr.reduce((a, b) => a + b, 0) / arr.length;
 
-  const addToBuffer = (buffer: number[], value: number, maxLength: number): void => {
+  const addToBuffer = (
+    buffer: number[],
+    value: number,
+    maxLength: number
+  ): void => {
     buffer.push(value);
     if (buffer.length > maxLength) {
       buffer.shift();
@@ -101,7 +125,9 @@ export default function FocusDetection(): JSX.Element {
     return points.length === indices.length ? points : null;
   };
 
-  const getEyeBox = (eyePoints: [number, number][] | null): [number, number, number, number] => {
+  const getEyeBox = (
+    eyePoints: [number, number][] | null
+  ): [number, number, number, number] => {
     if (!eyePoints || eyePoints.length === 0) {
       return [0, 0, 0, 0];
     }
@@ -213,7 +239,9 @@ export default function FocusDetection(): JSX.Element {
 
     // Calculate normal vector using cross product
     const normal = crossProduct(LR, LN);
-    let normLen = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+    let normLen = Math.sqrt(
+      normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]
+    );
 
     // Normalize normal vector
     if (normLen < 1e-7) {
@@ -266,7 +294,11 @@ export default function FocusDetection(): JSX.Element {
     if (pitchBufferRef.current.length > 0 && yawBufferRef.current.length > 0) {
       neutralPitchRef.current = average(pitchBufferRef.current);
       neutralYawRef.current = average(yawBufferRef.current);
-      alert(`Calibrated: Pitch ${neutralPitchRef.current.toFixed(2)}°, Yaw ${neutralYawRef.current.toFixed(2)}°`);
+      alert(
+        `Calibrated: Pitch ${neutralPitchRef.current.toFixed(
+          2
+        )}°, Yaw ${neutralYawRef.current.toFixed(2)}°`
+      );
     } else {
       alert("Please look at screen directly for calibration");
     }
@@ -287,7 +319,9 @@ export default function FocusDetection(): JSX.Element {
       console.log("Starting camera");
       // Check secure context
       if (!window.isSecureContext) {
-        alert("Camera access requires a secure context (HTTPS or localhost). Please run this extension on a secure origin.");
+        alert(
+          "Camera access requires a secure context (HTTPS or localhost). Please run this extension on a secure origin."
+        );
         console.error("Insecure context detected");
         return;
       }
@@ -295,7 +329,9 @@ export default function FocusDetection(): JSX.Element {
       try {
         // Check available cameras
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter((device) => device.kind === "videoinput");
+        const videoDevices = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
         console.log("Available cameras:", videoDevices);
         if (videoDevices.length === 0) {
           alert("No cameras detected. Please connect a camera and try again.");
@@ -309,7 +345,9 @@ export default function FocusDetection(): JSX.Element {
         console.log("Camera stream acquired successfully");
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play().catch((err) => console.error("Video play error:", err));
+          videoRef.current
+            .play()
+            .catch((err) => console.error("Video play error:", err));
         }
         setCameraActive(true);
       } catch (err) {
@@ -320,14 +358,20 @@ export default function FocusDetection(): JSX.Element {
               "Camera access was denied. Please click 'Allow' in the permission prompt, or go to chrome://settings/content/camera to enable access for this extension."
             );
           } else if (err.name === "NotFoundError") {
-            alert("No camera found. Please ensure a camera is connected and try again.");
+            alert(
+              "No camera found. Please ensure a camera is connected and try again."
+            );
           } else if (err.name === "SecurityError") {
-            alert("Camera access blocked due to security restrictions. Ensure this extension runs on a secure context (HTTPS or localhost).");
+            alert(
+              "Camera access blocked due to security restrictions. Ensure this extension runs on a secure context (HTTPS or localhost)."
+            );
           } else {
             alert(`Error accessing camera: ${err.message}`);
           }
         } else {
-          alert("Unexpected error accessing camera. Check console for details.");
+          alert(
+            "Unexpected error accessing camera. Check console for details."
+          );
         }
       }
     }
@@ -376,27 +420,53 @@ export default function FocusDetection(): JSX.Element {
           let finalFocus = 0.0;
           let metricsText = "";
 
-          if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          if (
+            results.multiFaceLandmarks &&
+            results.multiFaceLandmarks.length > 0
+          ) {
             // Reset no face counter
             noFaceCountRef.current = 0;
 
             const faceLandmarks = results.multiFaceLandmarks[0];
 
             // Get eye and iris landmarks
-            const leftEye = getLandmarkPoints(faceLandmarks, canvasWidth, canvasHeight, LEFT_EYE_INDICES);
-            const rightEye = getLandmarkPoints(faceLandmarks, canvasWidth, canvasHeight, RIGHT_EYE_INDICES);
+            const leftEye = getLandmarkPoints(
+              faceLandmarks,
+              canvasWidth,
+              canvasHeight,
+              LEFT_EYE_INDICES
+            );
+            const rightEye = getLandmarkPoints(
+              faceLandmarks,
+              canvasWidth,
+              canvasHeight,
+              RIGHT_EYE_INDICES
+            );
 
             if (leftEye && rightEye) {
               const leftBox = getEyeBox(leftEye);
               const rightBox = getEyeBox(rightEye);
 
-              const leftIrisCenter = getIrisCenter(faceLandmarks, canvasWidth, canvasHeight, LEFT_IRIS_INDICES);
-              const rightIrisCenter = getIrisCenter(faceLandmarks, canvasWidth, canvasHeight, RIGHT_IRIS_INDICES);
+              const leftIrisCenter = getIrisCenter(
+                faceLandmarks,
+                canvasWidth,
+                canvasHeight,
+                LEFT_IRIS_INDICES
+              );
+              const rightIrisCenter = getIrisCenter(
+                faceLandmarks,
+                canvasWidth,
+                canvasHeight,
+                RIGHT_IRIS_INDICES
+              );
 
               if (leftIrisCenter && rightIrisCenter) {
                 // Calculate iris focus
                 const leftIrisFocus = computeIrisFocus(leftIrisCenter, leftBox);
-                const rightIrisFocus = computeIrisFocus(rightIrisCenter, rightBox);
+                const rightIrisFocus = computeIrisFocus(
+                  rightIrisCenter,
+                  rightBox
+                );
                 const irisFocus = (leftIrisFocus + rightIrisFocus) / 2.0;
 
                 // Calculate head orientation
@@ -404,24 +474,42 @@ export default function FocusDetection(): JSX.Element {
                 const { pitch, yaw, roll } = getPitchYawRoll(LR, normal);
 
                 // Smooth angles with buffers
-                addToBuffer(pitchBufferRef.current, pitch, ANGLE_SMOOTHING_WINDOW);
+                addToBuffer(
+                  pitchBufferRef.current,
+                  pitch,
+                  ANGLE_SMOOTHING_WINDOW
+                );
                 addToBuffer(yawBufferRef.current, yaw, ANGLE_SMOOTHING_WINDOW);
-                addToBuffer(rollBufferRef.current, roll, ANGLE_SMOOTHING_WINDOW);
+                addToBuffer(
+                  rollBufferRef.current,
+                  roll,
+                  ANGLE_SMOOTHING_WINDOW
+                );
 
                 const smoothedPitch = average(pitchBufferRef.current);
                 const smoothedYaw = average(yawBufferRef.current);
 
                 // Calculate focus based on orientation
                 const yawFocus = computeAngleFocus(smoothedYaw, MAX_YAW_ANGLE);
-                const pitchFocus = computeAngleFocus(smoothedPitch, MAX_PITCH_ANGLE);
+                const pitchFocus = computeAngleFocus(
+                  smoothedPitch,
+                  MAX_PITCH_ANGLE
+                );
 
-                const orientationFocus = yawFocus * YAW_WEIGHT + pitchFocus * PITCH_WEIGHT;
+                const orientationFocus =
+                  yawFocus * YAW_WEIGHT + pitchFocus * PITCH_WEIGHT;
 
                 // Calculate final weighted focus score
-                finalFocus = irisFocus * IRIS_WEIGHT + orientationFocus * ORIENTATION_WEIGHT;
+                finalFocus =
+                  irisFocus * IRIS_WEIGHT +
+                  orientationFocus * ORIENTATION_WEIGHT;
 
                 // Add to smoothing buffer
-                addToBuffer(focusScoresBufferRef.current, finalFocus, FOCUS_BUFFER_SIZE);
+                addToBuffer(
+                  focusScoresBufferRef.current,
+                  finalFocus,
+                  FOCUS_BUFFER_SIZE
+                );
                 const smoothedFocus = average(focusScoresBufferRef.current);
 
                 // Update focus status
@@ -432,8 +520,12 @@ export default function FocusDetection(): JSX.Element {
 
                 metricsText =
                   `Iris Focus: ${Math.round(irisFocus)}%\n` +
-                  `Yaw: ${Math.round(smoothedYaw)}° (Focus: ${Math.round(yawFocus)}%)\n` +
-                  `Pitch: ${Math.round(smoothedPitch)}° (Focus: ${Math.round(pitchFocus)}%)\n` +
+                  `Yaw: ${Math.round(smoothedYaw)}° (Focus: ${Math.round(
+                    yawFocus
+                  )}%)\n` +
+                  `Pitch: ${Math.round(smoothedPitch)}° (Focus: ${Math.round(
+                    pitchFocus
+                  )}%)\n` +
                   `Orientation Focus: ${Math.round(orientationFocus)}%`;
                 setMetricsInfo(metricsText);
 
@@ -449,14 +541,26 @@ export default function FocusDetection(): JSX.Element {
                 // Draw iris centers
                 if (leftIrisCenter) {
                   canvasCtx.beginPath();
-                  canvasCtx.arc(leftIrisCenter[0], leftIrisCenter[1], 3, 0, 2 * Math.PI);
+                  canvasCtx.arc(
+                    leftIrisCenter[0],
+                    leftIrisCenter[1],
+                    3,
+                    0,
+                    2 * Math.PI
+                  );
                   canvasCtx.fillStyle = "rgba(255, 0, 0, 0.8)";
                   canvasCtx.fill();
                 }
 
                 if (rightIrisCenter) {
                   canvasCtx.beginPath();
-                  canvasCtx.arc(rightIrisCenter[0], rightIrisCenter[1], 3, 0, 2 * Math.PI);
+                  canvasCtx.arc(
+                    rightIrisCenter[0],
+                    rightIrisCenter[1],
+                    3,
+                    0,
+                    2 * Math.PI
+                  );
                   canvasCtx.fillStyle = "rgba(255, 0, 0, 0.8)";
                   canvasCtx.fill();
                 }
@@ -542,7 +646,9 @@ export default function FocusDetection(): JSX.Element {
         }
       } catch (err) {
         console.error("FaceMesh initialization error:", err);
-        alert("Failed to initialize face detection. Please refresh and try again.");
+        alert(
+          "Failed to initialize face detection. Please refresh and try again."
+        );
       }
     };
 
@@ -598,7 +704,9 @@ export default function FocusDetection(): JSX.Element {
         <button
           onClick={toggleCamera}
           className={`flex items-center px-4 py-2 rounded-md ${
-            cameraActive ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"
+            cameraActive
+              ? "bg-red-500 hover:bg-red-600"
+              : "bg-blue-500 hover:bg-blue-600"
           } text-white font-medium transition-colors`}
         >
           <Camera className="mr-2 h-5 w-5" />

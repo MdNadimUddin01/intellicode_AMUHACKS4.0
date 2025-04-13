@@ -1,15 +1,20 @@
 import { useState } from "react";
-import { Calendar, ArrowRight, Users, Video } from "lucide-react";
+import { Calendar, ArrowRight, Users, Video, IdCard } from "lucide-react";
 import { MeetingPageProps } from "../types/props";
+import { backendUrl } from "../../environment";
+import axios from "axios";
 
 export default function MeetingPage({ mode, onSubmit }: MeetingPageProps) {
   const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingId, setMeetingId] = useState("");
   const [meetingCode, setMeetingCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState("");
-  const [userRole, setUserRole] = useState("Student");
+  const [userRole, setUserRole] = useState("Teacher");
+  const storedUser = localStorage.getItem("user");
+  const [user, setUser] = useState(storedUser ? JSON.parse(storedUser) : null);
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = async(e: any):Promise<void> => {
     e.preventDefault();
 
     if (userRole === "Teacher") {
@@ -18,19 +23,33 @@ export default function MeetingPage({ mode, onSubmit }: MeetingPageProps) {
         return;
       }
       // Generate a random meeting code for demonstration
-      const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setMessage(`Meeting "${meetingTitle}" created! Share code: ${generatedCode}`);
+      // console.log({meetingId , meetingTitle})
+      const {data} = await axios.post(backendUrl + "classroom/create" , {name:meetingTitle , meeting_id:meetingId})
+      localStorage.setItem("teacherMeetingInfo" , JSON.stringify(data));
+
+      const generatedCode = Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
+      setMessage(
+        `Meeting "${meetingTitle}" created! Share code: ${generatedCode}`
+      );
       onSubmit();
     } else {
       if (!meetingCode.trim()) {
         setMessage("Please enter a meeting code");
         return;
       }
+
+      const {data} = await axios.post(backendUrl + `/classroom/${meetingCode}/join`);
+      localStorage.setItem("studentMeetingInfo" , JSON.stringify(data.room));
+
       setMessage(`Joining meeting with code: ${meetingCode}`);
 
       onSubmit();
+
     }
-    
+
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
@@ -77,28 +96,52 @@ export default function MeetingPage({ mode, onSubmit }: MeetingPageProps) {
 
       <form onSubmit={handleSubmit}>
         {userRole === "Teacher" ? (
-          <div className="mb-4">
-            <label
-              htmlFor="meetingTitle"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Meeting Title
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                id="meetingTitle"
-                value={meetingTitle}
-                onChange={(e) => setMeetingTitle(e.target.value)}
-                placeholder="Math Class - Geometry Review"
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Calendar
-                className="absolute left-3 top-2.5 text-gray-400"
-                size={18}
-              />
+          <>
+            <div className="mb-4">
+              <label
+                htmlFor="meetingTitle"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Meeting Title
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="meetingTitle"
+                  value={meetingTitle}
+                  onChange={(e) => setMeetingTitle(e.target.value)}
+                  placeholder="Math Class - Geometry Review"
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Calendar
+                  className="absolute left-3 top-2.5 text-gray-400"
+                  size={18}
+                />
+              </div>
             </div>
-          </div>
+            <div className="mb-4">
+              <label
+                htmlFor="meetingId"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Meeting Id
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="meetingId"
+                  value={meetingId}
+                  onChange={(e) => setMeetingId(e.target.value)}
+                  placeholder="Math Class - Geometry Review"
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <IdCard
+                  className="absolute left-3 top-2.5 text-gray-400"
+                  size={18}
+                />
+              </div>
+            </div>
+          </>
         ) : (
           <div className="mb-4">
             <label

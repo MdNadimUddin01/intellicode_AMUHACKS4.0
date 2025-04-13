@@ -18,9 +18,18 @@ export default function SignupForm({
   const [passwordMatch, setPasswordMatch] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (): Promise<void> => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    e.preventDefault(); // Prevent form submission default behavior
+
     if (password !== confirmPassword) {
       setPasswordMatch(false);
+      return;
+    }
+
+    if (!email || !password || !username) {
+      setError("Please fill in all required fields");
       return;
     }
 
@@ -37,13 +46,15 @@ export default function SignupForm({
 
       localStorage.setItem("token", JSON.stringify(data.token));
       localStorage.setItem("user", JSON.stringify(data.user));
-      console.log("data_register: ", data);
-      onSignupSuccess(data.user.role);
+      console.log("Registration successful:", data);
+      const is_teacher = data.user.role === "teacher";
+      onSignupSuccess(is_teacher);
     } catch (err: any) {
       console.error("Registration error:", err);
-      setError(
-        err.response?.data?.message || "An error occurred during registration"
-      );
+      const errorMessage =
+        err.response?.data?.message ||
+        "An error occurred during registration. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -246,7 +257,6 @@ export default function SignupForm({
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex justify-center"
             disabled={isLoading}
-            onClick={handleSubmit}
           >
             {isLoading ? (
               <svg

@@ -169,6 +169,39 @@ export default function StudentDashboard({
             isSmallScreen ? "h-48" : "h-56 sm:h-64"
           }`}
         >
+          <a
+            href="#"
+            className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+            onClick={(e) => {
+              e.preventDefault();
+
+              const data = {
+                name: "John",
+              };
+
+              const queryString = new URLSearchParams(data).toString();
+
+              chrome.tabs.create({
+                url: `http://127.0.0.1:3000/intellicode/entrypoints/popup/src/html/focus.html?${queryString}`,
+              });
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            Camera On
+          </a>
           {/* <div className="text-center text-white p-2 sm:p-4">
             <div className={`mx-auto bg-gray-700 rounded-full overflow-hidden mb-2 relative ${isSmallScreen ? "w-16 h-16" : "w-20 h-20 sm:w-24 sm:h-24"}`}>
               <img 
@@ -185,7 +218,7 @@ export default function StudentDashboard({
             <p className="text-xs sm:text-sm text-gray-400 mt-1">Camera {isVideoOff ? 'off' : 'on'}</p>
           </div> */}
 
-          <FocusDetection />
+          {/* <FocusDetection /> */}
 
           {/* <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center">
             <div className="bg-gray-800 rounded-full px-2 sm:px-3 py-1 flex space-x-1 sm:space-x-2">

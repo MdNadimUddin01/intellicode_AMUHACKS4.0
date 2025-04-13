@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Detection App</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        color: #fff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .app-title {
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 28px;
+        color: #fff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .container {
+        position: relative;
+        width: 90%;
+        max-width: 1280px;
+        height: 720px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        margin-bottom: 30px;
+      }
+
+      .input_video {
+        position: absolute;
+        visibility: hidden;
+      }
+
+      .output_canvas {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+      }
+
+      .focus_status {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(23, 23, 33, 0.85);
+        color: white;
+        padding: 15px;
+        border-radius: 50px;
+        font-size: 18px;
+        font-weight: 600;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .metrics {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        background: rgba(23, 23, 33, 0.85);
+        color: white;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.6;
+        max-width: 240px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        opacity: 0.9;
+        transition: all 0.3s ease;
+      }
+
+      .metrics:hover {
+        opacity: 1;
+      }
+
+      .metrics-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 16px;
+        color: #a3e4db;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding-bottom: 5px;
+      }
+
+      .metric-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+      }
+
+      .metric-label {
+        font-weight: 500;
+        color: #ccc;
+      }
+
+      .metric-value {
+        font-weight: 600;
+        color: #fff;
+      }
+
+      .controls {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        background: linear-gradient(to right, #4776e6, #8e54e9);
+        border: none;
+        padding: 12px 20px;
+        border-radius: 50px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        outline: none;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+      }
+
+      .progress-container {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 100px;
+        height: 100px;
+      }
+
+      .progress-circle {
+        transform: rotate(-90deg);
+        transform-origin: center;
+        transition: all 0.3s ease;
+      }
+
+      .focus-circle-bg {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-width: 8;
+      }
+
+      .focus-circle {
+        fill: none;
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: all 0.5s ease-out;
+      }
+
+      .focus-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          height: 500px;
+        }
+
+        .focus_status {
+          font-size: 16px;
+        }
+
+        .metrics {
+          font-size: 12px;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          font-size: 14px;
+        }
+
+        .progress-container {
+          width: 80px;
+          height: 80px;
+        }
+      }
+
+      /* Animation for focus status change */
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .pulse {
+        animation: pulse 1s ease-in-out;
+      }
+    </style>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <h1 class="app-title">Focus Detection System</h1>
+
+    <div class="container">
+      <video class="input_video"></video>
+      <canvas class="output_canvas" width="1280px" height="720px"></canvas>
+      <div class="focus_status">Focus Status: Unknown</div>
+      <div class="metrics">
+        <div class="metrics-title">Focus Metrics</div>
+        <div class="metrics-content">Waiting for data...</div>
+      </div>
+
+      <div class="controls">
+        <button class="btn calibrate-btn">Calibrate Position</button>
+        <button class="btn toggle-metrics">Hide Metrics</button>
+      </div>
+
+      <div class="progress-container">
+        <svg
+          class="progress-circle"
+          width="100"
+          height="100"
+          viewBox="0 0 100 100"
+        >
+          <circle class="focus-circle-bg" cx="50" cy="50" r="40"></circle>
+          <circle
+            class="focus-circle"
+            cx="50"
+            cy="50"
+            r="40"
+            stroke="#a3e4db"
+            stroke-dasharray="251.2"
+            stroke-dashoffset="251.2"
+          ></circle>
+        </svg>
+        <div class="focus-text">0%</div>
+      </div>
+    </div>
+
+    <script type="module">
+      const videoElement = document.getElementsByClassName("input_video")[0];
+      const canvasElement = document.getElementsByClassName("output_canvas")[0];
+      const focusStatusElement =
+        document.getElementsByClassName("focus_status")[0];
+      const metricsElement = document.getElementsByClassName("metrics")[0];
+      const metricsContent = document.querySelector(".metrics-content");
+      const canvasCtx = canvasElement.getContext("2d");
+      const toggleMetricsBtn = document.querySelector(".toggle-metrics");
+      const focusCircle = document.querySelector(".focus-circle");
+      const focusText = document.querySelector(".focus-text");
+
+      // focus.js (linked in focus.html)
+      const params = new URLSearchParams(window.location.search);
+      
+      const name = params.get("name");
+      console.log("Name:", name); // "John"
+      // console.log("Camera Enabled:", camera); // true
+
+      console.log("MeetingId: ", JSON.parse(localStorage.getItem("meetingId")));
+
+      // Global calibration variables (similar to Python neutrals)
+      let neutralPitch = 0.0;
+      let neutralYaw = 0.0;
+      let neutralIrisFocus = 50.0;
+
+      // Focus detection parameters and buffers
+      const FOCUS_THRESHOLD = 70; // Threshold for overall focus (0-100)
+      const MAX_YAW_ANGLE = 20.0;
+      const MAX_PITCH_ANGLE = 15.0;
+      const IRIS_WEIGHT = 0.7;
+      const ORIENTATION_WEIGHT = 0.3;
+      const YAW_WEIGHT = 0.6;
+      const PITCH_WEIGHT = 0.4;
+
+      let isFocused = false;
+      let lastFocusState = false;
+      let noFaceCount = 0;
+      const NO_FACE_THRESHOLD = 30;
+
+      // Smoothing buffers
+      const focusScoresBuffer = [];
+      const FOCUS_BUFFER_SIZE = 10;
+
+      const pitchBuffer = [];
+      const yawBuffer = [];
+      const rollBuffer = [];
+      const ANGLE_SMOOTHING_WINDOW = 10;
+
+      // Important landmarks for focus detection
+      const LEFT_EYE_INDICES = [33, 133, 159, 145, 153, 144, 160, 161];
+      const RIGHT_EYE_INDICES = [263, 362, 386, 374, 380, 373, 387, 388];
+      const LEFT_IRIS_INDICES = [468, 469, 470, 471];
+      const RIGHT_IRIS_INDICES = [473, 474, 475, 476];
+
+      const FACE_KEY_LANDMARKS = {
+        noseTip: 1,
+        chin: 152,
+        leftEyeOuter: 33,
+        rightEyeOuter: 263,
+        leftMouth: 61,
+        rightMouth: 291,
+      };
+
+      // Toggle metrics visibility
+      toggleMetricsBtn.addEventListener("click", () => {
+        if (metricsElement.style.display === "none") {
+          metricsElement.style.display = "block";
+          toggleMetricsBtn.textContent = "Hide Metrics";
+        } else {
+          metricsElement.style.display = "none";
+          toggleMetricsBtn.textContent = "Show Metrics";
+        }
+      });
+
+      // Utility function to get average of an array
+      function average(arr) {
+        return arr.reduce((a, b) => a + b, 0) / arr.length;
+      }
+
+      // Add value to a buffer with maximum length
+      function addToBuffer(buffer, value, maxLength) {
+        buffer.push(value);
+        if (buffer.length > maxLength) {
+          buffer.shift();
+        }
+      }
+
+      // Get landmark points for specific indices
+      function getLandmarkPoints(landmarks, width, height, indices) {
+        const points = [];
+        for (const idx of indices) {
+          const x = landmarks[idx].x * width;
+          const y = landmarks[idx].y * height;
+          if (x >= 0 && x < width && y >= 0 && y < height) {
+            points.push([Math.floor(x), Math.floor(y)]);
+          } else {
+            return null;
+          }
+        }
+        return points.length === indices.length ? points : null;
+      }
+
+      // Get bounding box for an eye
+      function getEyeBox(eyePoints) {
+        if (!eyePoints || eyePoints.length === 0) {
+          return [0, 0, 0, 0];
+        }
+
+        const xCoords = eyePoints.map((pt) => pt[0]);
+        const yCoords = eyePoints.map((pt) => pt[1]);
+
+        const minX = Math.max(0, Math.min(...xCoords));
+        const maxX = Math.max(...xCoords);
+        const minY = Math.max(0, Math.min(...yCoords));
+        const maxY = Math.max(...yCoords);
+
+        return [minX, minY, maxX, maxY];
+      }
+
+      // Get iris center from landmarks
+      function getIrisCenter(landmarks, width, height, irisIndices) {
+        const irisX = [];
+        const irisY = [];
+
+        for (const i of irisIndices) {
+          const ix = landmarks[i].x * width;
+          const iy = landmarks[i].y * height;
+
+          if (ix >= 0 && ix < width && iy >= 0 && iy < height) {
+            irisX.push(ix);
+            irisY.push(iy);
+          } else {
+            return null;
+          }
+        }
+
+        if (irisX.length !== irisIndices.length) {
+          return null;
+        }
+
+        return [
+          Math.floor(irisX.reduce((a, b) => a + b, 0) / irisX.length),
+          Math.floor(irisY.reduce((a, b) => a + b, 0) / irisY.length),
+        ];
+      }
+
+      // Compute iris focus level
+      function computeIrisFocus(irisPoint, eyeBox) {
+        if (!irisPoint) {
+          return 0.0;
+        }
+
+        const [minX, minY, maxX, maxY] = eyeBox;
+        const eyeWidth = maxX - minX;
+        const eyeHeight = maxY - minY;
+
+        if (eyeWidth === 0 || eyeHeight === 0) {
+          return 0.0;
+        }
+
+        const eyeCenterX = (minX + maxX) / 2;
+        const eyeCenterY = (minY + maxY) / 2;
+
+        const hOffset = Math.abs(irisPoint[0] - eyeCenterX) / (eyeWidth / 2.0);
+        const vOffset = Math.abs(irisPoint[1] - eyeCenterY) / (eyeHeight / 2.0);
+
+        const hFocus = Math.max(0, Math.min(100, (1 - hOffset) * 100));
+        const vFocus = Math.max(0, Math.min(100, (1 - vOffset) * 100));
+        const rawFocus = (hFocus + vFocus) / 2.0;
+
+        const adjustedFocus = (rawFocus / neutralIrisFocus) * 90;
+        return Math.min(Math.max(adjustedFocus, 0), 100);
+      }
+
+      // Get face vectors for calculating pitch, yaw, roll
+      function getFaceVectors(landmarks) {
+        const lIdx = FACE_KEY_LANDMARKS.leftEyeOuter;
+        const rIdx = FACE_KEY_LANDMARKS.rightEyeOuter;
+        const nIdx = FACE_KEY_LANDMARKS.noseTip;
+
+        const L = landmarks[lIdx];
+        const R = landmarks[rIdx];
+        const N = landmarks[nIdx];
+
+        const lx = L.x,
+          ly = L.y,
+          lz = L.z;
+        const rx = R.x,
+          ry = R.y,
+          rz = R.z;
+        const nx = N.x,
+          ny = N.y,
+          nz = N.z;
+
+        // Vector from left eye to right eye
+        const LR = [rx - lx, ry - ly, rz - lz];
+
+        // Vector from left eye to nose
+        const LN = [nx - lx, ny - ly, nz - lz];
+
+        // Calculate normal vector using cross product
+        const normal = crossProduct(LR, LN);
+        let normLen = Math.sqrt(
+          normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]
+        );
+
+        // Normalize normal vector
+        if (normLen < 1e-7) {
+          normal[0] = 0;
+          normal[1] = 0;
+          normal[2] = -1;
+        } else {
+          normal[0] /= normLen;
+          normal[1] /= normLen;
+          normal[2] /= normLen;
+        }
+
+        // Ensure normal points forward
+        if (normal[2] > 0) {
+          normal[0] = -normal[0];
+          normal[1] = -normal[1];
+          normal[2] = -normal[2];
+        }
+
+        return { LR, normal };
+      }
+
+      // Cross product of two vectors
+      function crossProduct(a, b) {
+        return [
+          a[1] * b[2] - a[2] * b[1],
+          a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0],
+        ];
+      }
+
+      // Calculate pitch, yaw, roll angles from face vectors
+      function getPitchYawRoll(LR, normal) {
+        // Yaw from LR vector (projected onto XZ plane)
+        const [LR_x, LR_y, LR_z] = LR;
+        const yawRad = Math.atan2(LR_x, LR_z);
+
+        const [Nx, Ny, Nz] = normal;
+        const denom = Math.sqrt(Nx * Nx + Nz * Nz);
+        const pitchRad = denom > 1e-7 ? Math.atan2(Ny, denom) : 0.0;
+        const rollRad = 0.0;
+
+        let pitch = pitchRad * (180 / Math.PI);
+        let yaw = yawRad * (180 / Math.PI);
+        let roll = rollRad * (180 / Math.PI);
+
+        pitch -= neutralPitch;
+        yaw -= neutralYaw;
+
+        return { pitch, yaw, roll };
+      }
+
+      // Compute focus level based on angle
+      function computeAngleFocus(angle, maxAngle) {
+        const angleAbs = Math.abs(angle);
+        return Math.max(0.0, (1 - angleAbs / maxAngle) * 100.0);
+      }
+
+      // Update progress circle
+      function updateProgressCircle(focusScore) {
+        const circumference = 2 * Math.PI * 40; // 2πr where r=40
+        const offset = circumference - (focusScore / 100) * circumference;
+        focusCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        focusCircle.style.strokeDashoffset = offset;
+
+        // Update color based on focus level
+        if (focusScore >= FOCUS_THRESHOLD) {
+          focusCircle.style.stroke = "#4ade80"; // Green for focused
+        } else if (focusScore >= FOCUS_THRESHOLD * 0.7) {
+          focusCircle.style.stroke = "#facc15"; // Yellow for borderline
+        } else {
+          focusCircle.style.stroke = "#f87171"; // Red for not focused
+        }
+
+        focusText.textContent = `${Math.round(focusScore)}%`;
+      }
+
+      function onResults(results) {
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(
+          results.image,
+          0,
+          0,
+          canvasElement.width,
+          canvasElement.height
+        );
+
+        let finalFocus = 0.0;
+        let metricsHtml = "";
+
+        if (
+          results.multiFaceLandmarks &&
+          results.multiFaceLandmarks.length > 0
+        ) {
+          // Reset no face counter
+          noFaceCount = 0;
+
+          const faceLandmarks = results.multiFaceLandmarks[0];
+          const frameWidth = canvasElement.width;
+          const frameHeight = canvasElement.height;
+
+          // Get eye and iris landmarks
+          const leftEye = getLandmarkPoints(
+            faceLandmarks,
+            frameWidth,
+            frameHeight,
+            LEFT_EYE_INDICES
+          );
+          const rightEye = getLandmarkPoints(
+            faceLandmarks,
+            frameWidth,
+            frameHeight,
+            RIGHT_EYE_INDICES
+          );
+
+          if (leftEye && rightEye) {
+            const leftBox = getEyeBox(leftEye);
+            const rightBox = getEyeBox(rightEye);
+
+            const leftIrisCenter = getIrisCenter(
+              faceLandmarks,
+              frameWidth,
+              frameHeight,
+              LEFT_IRIS_INDICES
+            );
+            const rightIrisCenter = getIrisCenter(
+              faceLandmarks,
+              frameWidth,
+              frameHeight,
+              RIGHT_IRIS_INDICES
+            );
+
+            if (leftIrisCenter && rightIrisCenter) {
+              // Calculate iris focus
+              const leftIrisFocus = computeIrisFocus(leftIrisCenter, leftBox);
+              const rightIrisFocus = computeIrisFocus(
+                rightIrisCenter,
+                rightBox
+              );
+              const irisFocus = (leftIrisFocus + rightIrisFocus) / 2.0;
+
+              // Calculate head orientation
+              const { LR, normal } = getFaceVectors(faceLandmarks);
+              const { pitch, yaw, roll } = getPitchYawRoll(LR, normal);
+
+              // Smooth angles with buffers
+              addToBuffer(pitchBuffer, pitch, ANGLE_SMOOTHING_WINDOW);
+              addToBuffer(yawBuffer, yaw, ANGLE_SMOOTHING_WINDOW);
+              addToBuffer(rollBuffer, roll, ANGLE_SMOOTHING_WINDOW);
+
+              const smoothedPitch = average(pitchBuffer);
+              const smoothedYaw = average(yawBuffer);
+              const smoothedRoll = average(rollBuffer);
+
+              // Calculate focus based on orientation
+              const yawFocus = computeAngleFocus(smoothedYaw, MAX_YAW_ANGLE);
+              const pitchFocus = computeAngleFocus(
+                smoothedPitch,
+                MAX_PITCH_ANGLE
+              );
+
+              const orientationFocus =
+                yawFocus * YAW_WEIGHT + pitchFocus * PITCH_WEIGHT;
+
+              // Calculate final weighted focus score
+              finalFocus =
+                irisFocus * IRIS_WEIGHT + orientationFocus * ORIENTATION_WEIGHT;
+
+              // Add to smoothing buffer
+              addToBuffer(focusScoresBuffer, finalFocus, FOCUS_BUFFER_SIZE);
+              const smoothedFocus = average(focusScoresBuffer);
+
+              // Update focus status
+              lastFocusState = isFocused;
+              isFocused = smoothedFocus >= FOCUS_THRESHOLD;
+
+              // If focus state changed, add pulse animation
+              if (isFocused !== lastFocusState) {
+                focusStatusElement.classList.add("pulse");
+                setTimeout(() => {
+                  focusStatusElement.classList.remove("pulse");
+                }, 1000);
+              }
+
+              // Update UI elements
+              focusStatusElement.textContent = `Focus Status: ${
+                isFocused ? "Focused" : "Not Focused"
+              }`;
+              focusStatusElement.style.backgroundColor = isFocused
+                ? "rgba(22, 163, 74, 0.85)"
+                : "rgba(220, 38, 38, 0.85)";
+
+              // Update progress circle
+              updateProgressCircle(smoothedFocus);
+
+              metricsHtml = `
+                <div class="metric-row">
+                  <span class="metric-label">Iris Focus:</span>
+                  <span class="metric-value">${Math.round(irisFocus)}%</span>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Yaw:</span>
+                  <span class="metric-value">${Math.round(
+                    smoothedYaw
+                  )}° (${Math.round(yawFocus)}%)</span>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Pitch:</span>
+                  <span class="metric-value">${Math.round(
+                    smoothedPitch
+                  )}° (${Math.round(pitchFocus)}%)</span>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Orientation:</span>
+                  <span class="metric-value">${Math.round(
+                    orientationFocus
+                  )}%</span>
+                </div>
+              `;
+
+              // Draw eyes elegantly
+              for (const point of [...leftEye, ...rightEye]) {
+                canvasCtx.beginPath();
+                canvasCtx.arc(point[0], point[1], 1.5, 0, 2 * Math.PI);
+                canvasCtx.fillStyle = "rgba(163, 228, 219, 0.7)";
+                canvasCtx.fill();
+              }
+
+              // Draw iris centers
+              canvasCtx.beginPath();
+              canvasCtx.arc(
+                leftIrisCenter[0],
+                leftIrisCenter[1],
+                4,
+                0,
+                2 * Math.PI
+              );
+              canvasCtx.fillStyle = "rgba(249, 250, 251, 0.9)";
+              canvasCtx.fill();
+              canvasCtx.stroke();
+
+              canvasCtx.beginPath();
+              canvasCtx.arc(
+                rightIrisCenter[0],
+                rightIrisCenter[1],
+                4,
+                0,
+                2 * Math.PI
+              );
+              canvasCtx.fillStyle = "rgba(249, 250, 251, 0.9)";
+              canvasCtx.fill();
+              canvasCtx.stroke();
+            }
+          }
+
+          // Draw face mesh landmarks with more elegant style
+          // Draw face mesh only with lighter lines
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_TESSELATION, {
+            color: "rgba(255, 255, 255, 0.15)",
+            lineWidth: 0.5,
+          });
+
+          // Highlight eye areas
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_RIGHT_EYE, {
+            color: "rgba(102, 207, 199, 0.8)",
+            lineWidth: 1.5,
+          });
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_RIGHT_EYEBROW, {
+            color: "rgba(102, 207, 199, 0.6)",
+            lineWidth: 1.5,
+          });
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_RIGHT_IRIS, {
+            color: "rgba(255, 255, 255, 0.8)",
+            lineWidth: 1.5,
+          });
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_LEFT_EYE, {
+            color: "rgba(102, 207, 199, 0.8)",
+            lineWidth: 1.5,
+          });
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_LEFT_EYEBROW, {
+            color: "rgba(102, 207, 199, 0.6)",
+            lineWidth: 1.5,
+          });
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_LEFT_IRIS, {
+            color: "rgba(255, 255, 255, 0.8)",
+            lineWidth: 1.5,
+          });
+
+          // Outline the face with a glowing effect
+          canvasCtx.shadowColor = "rgba(102, 207, 199, 0.6)";
+          canvasCtx.shadowBlur = 8;
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_FACE_OVAL, {
+            color: "rgba(255, 255, 255, 0.7)",
+            lineWidth: 2,
+          });
+          canvasCtx.shadowBlur = 0;
+
+          // Draw lips
+          drawConnectors(canvasCtx, faceLandmarks, FACEMESH_LIPS, {
+            color: "rgba(255, 255, 255, 0.5)",
+            lineWidth: 1.5,
+          });
+        } else {
+          // No face detected
+          noFaceCount++;
+
+          if (noFaceCount > NO_FACE_THRESHOLD) {
+            isFocused = false;
+            addToBuffer(focusScoresBuffer, 0, FOCUS_BUFFER_SIZE);
+            const smoothedFocus = average(focusScoresBuffer);
+
+            focusStatusElement.textContent = "Focus Status: No Face Detected";
+            focusStatusElement.style.backgroundColor =
+              "rgba(100, 116, 139, 0.85)";
+
+            // Update progress circle for no face
+            updateProgressCircle(smoothedFocus);
+
+            metricsHtml = `<div class="metric-row">
+              <span class="metric-label">Status:</span>
+              <span class="metric-value">No face detected</span>
+            </div>`;
+          }
+        }
+
+        metricsContent.innerHTML = metricsHtml;
+        canvasCtx.restore();
+      }
+
+      // Button to calibrate neutral position
+      const calibrateBtn = document.querySelector(".calibrate-btn");
+
+      calibrateBtn.addEventListener("click", () => {
+        if (pitchBuffer.length > 0 && yawBuffer.length > 0) {
+          neutralPitch = average(pitchBuffer);
+          neutralYaw = average(yawBuffer);
+
+          // Create and show a toast notification
+          const toast = document.createElement("div");
+          toast.style.position = "fixed";
+          toast.style.bottom = "30px";
+          toast.style.left = "50%";
+          toast.style.transform = "translateX(-50%)";
+          toast.style.backgroundColor = "rgba(22, 163, 74, 0.9)";
+          toast.style.color = "white";
+          toast.style.padding = "12px 24px";
+          toast.style.borderRadius = "50px";
+          toast.style.fontWeight = "600";
+          toast.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+          toast.style.zIndex = "1000";
+          toast.style.opacity = "0";
+          toast.style.transition = "opacity 0.3s ease";
+          toast.textContent = `Calibrated: Pitch ${neutralPitch.toFixed(
+            1
+          )}°, Yaw ${neutralYaw.toFixed(1)}°`;
+
+          document.body.appendChild(toast);
+
+          // Show the toast with fade-in animation
+          setTimeout(() => {
+            toast.style.opacity = "1";
+          }, 100);
+
+          // Remove toast after 3 seconds
+          setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => {
+              document.body.removeChild(toast);
+            }, 300);
+          }, 3000);
+        } else {
+          // Create error toast
+          const toast = document.createElement("div");
+          toast.style.position = "fixed";
+          toast.style.bottom = "30px";
+          toast.style.left = "50%";
+          toast.style.transform = "translateX(-50%)";
+          toast.style.backgroundColor = "rgba(220, 38, 38, 0.9)";
+          toast.style.color = "white";
+          toast.style.padding = "12px 24px";
+          toast.style.borderRadius = "50px";
+          toast.style.fontWeight = "600";
+          toast.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+          toast.style.zIndex = "1000";
+          toast.textContent = "Please look at screen directly for calibration";
+
+          document.body.appendChild(toast);
+
+          // Remove toast after 3 seconds
+          setTimeout(() => {
+            document.body.removeChild(toast);
+          }, 3000);
+        }
+      });
+
+      // Create FaceMesh instance with improved options
+      const faceMesh = new FaceMesh({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+        },
+      });
+
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7,
+      });
+
+      faceMesh.onResults(onResults);
+
+      // Add loading indicator
+      const loadingIndicator = document.createElement("div");
+      loadingIndicator.style.position = "fixed";
+      loadingIndicator.style.top = "0";
+      loadingIndicator.style.left = "0";
+      loadingIndicator.style.width = "100%";
+      loadingIndicator.style.height = "100%";
+      loadingIndicator.style.backgroundColor = "rgba(23, 23, 33, 0.95)";
+      loadingIndicator.style.display = "flex";
+      loadingIndicator.style.flexDirection = "column";
+      loadingIndicator.style.alignItems = "center";
+      loadingIndicator.style.justifyContent = "center";
+      loadingIndicator.style.zIndex = "2000";
+      loadingIndicator.style.color = "white";
+      loadingIndicator.style.fontFamily =
+        "Segoe UI, Tahoma, Geneva, Verdana, sans-serif";
+
+      const spinner = document.createElement("div");
+      spinner.style.width = "50px";
+      spinner.style.height = "50px";
+      spinner.style.border = "5px solid rgba(255, 255, 255, 0.3)";
+      spinner.style.borderRadius = "50%";
+      spinner.style.borderTop = "5px solid #a3e4db";
+      spinner.style.animation = "spin 1s linear infinite";
+
+      const loadingText = document.createElement("p");
+      loadingText.style.marginTop = "20px";
+      loadingText.style.fontSize = "18px";
+      loadingText.style.fontWeight = "600";
+      loadingText.textContent = "Loading Focus Detection System...";
+
+      const loadingSubtext = document.createElement("p");
+      loadingSubtext.style.marginTop = "10px";
+      loadingSubtext.style.fontSize = "14px";
+      loadingSubtext.style.opacity = "0.7";
+      loadingSubtext.textContent = "Please allow camera access when prompted";
+
+      const styleElement = document.createElement("style");
+      styleElement.textContent = `
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+
+      document.head.appendChild(styleElement);
+      loadingIndicator.appendChild(spinner);
+      loadingIndicator.appendChild(loadingText);
+      loadingIndicator.appendChild(loadingSubtext);
+      document.body.appendChild(loadingIndicator);
+
+      // Initialize the camera with error handling
+      const startCamera = async () => {
+        try {
+          const camera = new Camera(videoElement, {
+            onFrame: async () => {
+              await faceMesh.send({ image: videoElement });
+            },
+            width: 1280,
+            height: 720,
+          });
+
+          await camera.start();
+          console.log("Camera started successfully");
+
+          // Remove loading indicator with fade effect
+          loadingIndicator.style.transition = "opacity 0.5s ease-out";
+          loadingIndicator.style.opacity = "0";
+          setTimeout(() => {
+            document.body.removeChild(loadingIndicator);
+          }, 500);
+        } catch (error) {
+          console.error("Error starting camera:", error);
+          loadingText.textContent = "Camera Error";
+          loadingSubtext.textContent =
+            "Please check camera permissions and reload the page";
+          loadingSubtext.style.color = "#f87171";
+          spinner.style.display = "none";
+
+          const retryButton = document.createElement("button");
+          retryButton.textContent = "Retry";
+          retryButton.style.marginTop = "20px";
+          retryButton.style.padding = "10px 20px";
+          retryButton.style.backgroundColor = "#4776e6";
+          retryButton.style.border = "none";
+          retryButton.style.borderRadius = "50px";
+          retryButton.style.color = "white";
+          retryButton.style.fontWeight = "600";
+          retryButton.style.cursor = "pointer";
+          retryButton.onclick = () => window.location.reload();
+
+          loadingIndicator.appendChild(retryButton);
+        }
+      };
+
+      // Start the camera
+      startCamera();
+
+      // Add keyboard shortcut for calibration
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "c" || event.key === "C") {
+          calibrateBtn.click();
+        }
+      });
+
+      // Add instructions button and modal
+      const instructionsBtn = document.createElement("button");
+      instructionsBtn.className = "btn";
+      instructionsBtn.textContent = "Instructions";
+      instructionsBtn.style.marginLeft = "10px";
+      document.querySelector(".controls").appendChild(instructionsBtn);
+
+      const modal = document.createElement("div");
+      modal.style.display = "none";
+      modal.style.position = "fixed";
+      modal.style.top = "0";
+      modal.style.left = "0";
+      modal.style.width = "100%";
+      modal.style.height = "100%";
+      modal.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+      modal.style.zIndex = "2000";
+      modal.style.justifyContent = "center";
+      modal.style.alignItems = "center";
+
+      const modalContent = document.createElement("div");
+      modalContent.style.backgroundColor = "#16213e";
+      modalContent.style.borderRadius = "12px";
+      modalContent.style.padding = "30px";
+      modalContent.style.maxWidth = "600px";
+      modalContent.style.width = "80%";
+      modalContent.style.color = "white";
+      modalContent.style.position = "relative";
+      modalContent.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.5)";
+      modalContent.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "×";
+      closeBtn.style.position = "absolute";
+      closeBtn.style.top = "15px";
+      closeBtn.style.right = "15px";
+      closeBtn.style.border = "none";
+      closeBtn.style.background = "none";
+      closeBtn.style.color = "white";
+      closeBtn.style.fontSize = "24px";
+      closeBtn.style.cursor = "pointer";
+      closeBtn.style.padding = "5px 10px";
+      closeBtn.style.borderRadius = "5px";
+
+      const modalTitle = document.createElement("h2");
+      modalTitle.textContent = "How to Use Focus Detection";
+      modalTitle.style.marginBottom = "20px";
+      modalTitle.style.color = "#a3e4db";
+      modalTitle.style.fontSize = "24px";
+
+      const modalInstructions = document.createElement("div");
+      modalInstructions.innerHTML = `
+        <h3 style="margin-bottom: 10px; color: #fff; font-size: 18px;">Getting Started:</h3>
+        <ul style="margin-bottom: 20px; line-height: 1.6; padding-left: 20px;">
+          <li>Allow camera access when prompted</li>
+          <li>Sit in a well-lit environment facing the camera</li>
+          <li>Click "Calibrate Position" while looking directly at the screen</li>
+        </ul>
+        
+        <h3 style="margin-bottom: 10px; color: #fff; font-size: 18px;">Focus Metrics:</h3>
+        <ul style="margin-bottom: 20px; line-height: 1.6; padding-left: 20px;">
+          <li><strong>Iris Focus</strong>: Measures if your eyes are looking at the screen</li>
+          <li><strong>Yaw</strong>: Measures horizontal head rotation (left/right)</li>
+          <li><strong>Pitch</strong>: Measures vertical head rotation (up/down)</li>
+        </ul>
+        
+        <h3 style="margin-bottom: 10px; color: #fff; font-size: 18px;">Keyboard Shortcuts:</h3>
+        <ul style="line-height: 1.6; padding-left: 20px;">
+          <li>Press <strong>C</strong> to calibrate position</li>
+          <li>Press <strong>ESC</strong> to close this window</li>
+        </ul>
+      `;
+
+      modalContent.appendChild(closeBtn);
+      modalContent.appendChild(modalTitle);
+      modalContent.appendChild(modalInstructions);
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+
+      instructionsBtn.addEventListener("click", () => {
+        modal.style.display = "flex";
+      });
+
+      closeBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          modal.style.display = "none";
+        }
+      });
+
+      // Click outside to close modal
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          modal.style.display = "none";
+        }
+      });
+
+      // Add a theme toggle button
+      const themeToggleBtn = document.createElement("button");
+      themeToggleBtn.className = "btn";
+      themeToggleBtn.textContent = "Toggle Theme";
+      themeToggleBtn.style.marginLeft = "10px";
+      document.querySelector(".controls").appendChild(themeToggleBtn);
+
+      // Set up theme
+      let darkTheme = true;
+
+      themeToggleBtn.addEventListener("click", () => {
+        darkTheme = !darkTheme;
+
+        if (darkTheme) {
+          // Dark theme
+          document.body.style.background =
+            "linear-gradient(135deg, #1a1a2e, #16213e)";
+          modalContent.style.backgroundColor = "#16213e";
+        } else {
+          // Light theme
+          document.body.style.background =
+            "linear-gradient(135deg, #f0f9ff, #e0f2fe)";
+          document.body.style.color = "#0f172a";
+          modalContent.style.backgroundColor = "#ffffff";
+          modalContent.style.color = "#0f172a";
+          modalTitle.style.color = "#0891b2";
+        }
+      });
+
+      // Export focus state for external use
+      window.getUserFocusState = () => {
+        return {
+          isFocused,
+          focusScore:
+            focusScoresBuffer.length > 0 ? average(focusScoresBuffer) : 0,
+          metrics: {
+            pitch: pitchBuffer.length > 0 ? average(pitchBuffer) : 0,
+            yaw: yawBuffer.length > 0 ? average(yawBuffer) : 0,
+          },
+        };
+      };
+    </script>
+
+    <!-- Add footer with additional information -->
+    <footer
+      style="
+        text-align: center;
+        padding: 20px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 20px;
+      "
+    >
+      <p>
+        Focus Detection System v2.0 |
+        <a href="#" style="color: #a3e4db; text-decoration: none"
+          >Privacy Policy</a
+        >
+        |
+        <a href="#" style="color: #a3e4db; text-decoration: none"
+          >Terms of Use</a
+        >
+      </p>
+    </footer>
+  </body>
+</html>

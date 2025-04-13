@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, X, Mic, MicOff, Video, VideoOff, ChevronDown, ChevronUp } from "lucide-react";
+import FocusDetection from "./FocusDetection";
 
 const StudentMeetingPage = () => {
   const [isMuted, setIsMuted] = useState(false);
@@ -66,9 +67,8 @@ const StudentMeetingPage = () => {
 
       {/* Main content area */}
       <div className="p-3 sm:p-4 bg-white">
-        {/* Video area - adjust height based on screen size */}
         <div className={`bg-gray-900 rounded-lg mb-3 sm:mb-4 relative flex items-center justify-center ${isSmallScreen ? "h-48" : "h-56 sm:h-64"}`}>
-          <div className="text-center text-white p-2 sm:p-4">
+          {/* <div className="text-center text-white p-2 sm:p-4">
             <div className={`mx-auto bg-gray-700 rounded-full overflow-hidden mb-2 relative ${isSmallScreen ? "w-16 h-16" : "w-20 h-20 sm:w-24 sm:h-24"}`}>
               <img 
                 src="/api/placeholder/96/96" 
@@ -82,10 +82,11 @@ const StudentMeetingPage = () => {
               )}
             </div>
             <p className="text-xs sm:text-sm text-gray-400 mt-1">Camera {isVideoOff ? 'off' : 'on'}</p>
-          </div>
+          </div> */}
+
+          <FocusDetection/>
           
-          {/* Meeting controls - smaller on mobile */}
-          <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center">
+          {/* <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center">
             <div className="bg-gray-800 rounded-full px-2 sm:px-3 py-1 flex space-x-1 sm:space-x-2">
               <button 
                 onClick={() => setIsMuted(prev => !prev)}
@@ -98,10 +99,9 @@ const StudentMeetingPage = () => {
                 {isVideoOff ? <VideoOff size={isSmallScreen ? 14 : 16} /> : <Video size={isSmallScreen ? 14 : 16} />}
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
         
-        {/* Meeting details - collapsible on small screens */}
         <div className="mb-3 sm:mb-4 bg-blue-50 rounded-lg border border-blue-100 overflow-hidden">
           <div 
             className="flex justify-between items-center p-2 sm:p-3 cursor-pointer"
@@ -132,7 +132,6 @@ const StudentMeetingPage = () => {
           )}
         </div>
         
-        {/* End meeting button - adjust sizing for mobile */}
         <button 
           onClick={() => setShowExitConfirm(true)}
           className="w-full bg-red-500 hover:bg-red-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-md flex items-center justify-center transition-colors text-sm sm:text-base">

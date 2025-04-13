@@ -7,7 +7,7 @@ export default function MeetingPage({ mode, onSubmit }: MeetingPageProps) {
   const [meetingCode, setMeetingCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState("");
-  const [userRole, setUserRole] = useState("Teacher");
+  const [userRole, setUserRole] = useState("Student");
 
   const handleSubmit = (e: any) => {
     e.preventDefault();

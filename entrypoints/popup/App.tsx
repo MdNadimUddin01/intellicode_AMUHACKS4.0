@@ -5,6 +5,7 @@ import MeetingPage from "./src/components/MeetingPage";
 import StudentDashboard from "./src/components/StudentDashboard";
 import TeacherDashboard from "./src/components/TeacherDashboard";
 import WXTHomePage from "./src/components/WXTHomePage";
+import StudentMeetingPage from "./src/components/StudentMeetingPage";
 
 type Page = 'home' | 'login' | 'signup' | 'teacherDashboard' | 'studentDashboard' | 'createMeeting' | 'joinMeeting';
 
@@ -54,9 +55,7 @@ function App() {
   };
 
   return (
-    <div className="w-full h-full">
-      {renderPage()}
-    </div>
+    <StudentMeetingPage/>
   );
 }
 

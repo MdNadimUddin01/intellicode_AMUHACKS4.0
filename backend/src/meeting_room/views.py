@@ -11,6 +11,7 @@ import logging
 from django.core.cache import cache
 import json
 from .models import Room, RoomParticipant
+from django.core.serializers.json import DjangoJSONEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -203,11 +204,13 @@ def list_participants(request, meeting_id):
 def save_focus_data(request, meeting_id):
     """Save or update focus data for a student"""
     try:
-        # Validate and get required data
-        data = request.data.get('data')
-        if not data:
+        # Validate required fields
+        focus_data = request.data.get('focus_data')
+        _status = request.data.get('status')
+
+        if not focus_data or not _status:
             return Response(
-                {"error": "Data is required"},
+                {"error": "focus_data and status are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -233,7 +236,10 @@ def save_focus_data(request, meeting_id):
             data_stream, created = DataStream.objects.select_for_update().update_or_create(
                 room=room,
                 user=request.user,
-                defaults={'data': data}
+                defaults={
+                    'focus_data': float(focus_data),
+                    'status': _status
+                }
             )
 
         # Return minimal response to reduce bandwidth
@@ -246,6 +252,11 @@ def save_focus_data(request, meeting_id):
         return Response(
             {"error": "Room not found"},
             status=status.HTTP_404_NOT_FOUND
+        )
+    except ValueError:
+        return Response(
+            {"error": "focus_data must be a valid number"},
+            status=status.HTTP_400_BAD_REQUEST
         )
     except Exception as e:
         # Log the error for debugging
@@ -299,7 +310,8 @@ def get_focus_data(request, meeting_id):
             return Response(json.loads(cached_data))
 
         # If not in cache, get from database
-        data_stream = DataStream.objects.filter(room=room, user=student).order_by('-timestamp').first()
+        data_stream = DataStream.objects.filter(
+            room=room, user=student).order_by('-timestamp').first()
         if not data_stream:
             return Response(
                 {"error": "No focus data found for this student"},
@@ -310,8 +322,9 @@ def get_focus_data(request, meeting_id):
         response_data = serializer.data
 
         # Cache the result
-        cache.set(cache_key, json.dumps(response_data), FOCUS_DATA_CACHE_TIMEOUT)
-        
+        cache.set(cache_key, json.dumps(response_data),
+                  FOCUS_DATA_CACHE_TIMEOUT)
+
         return Response(response_data)
 
     except Room.DoesNotExist:
@@ -341,14 +354,23 @@ def get_all_focus_data(request, meeting_id):
         if cached_data:
             return Response(json.loads(cached_data))
 
-        # If not in cache, get from database
-        data_streams = DataStream.objects.filter(room=room).order_by('-timestamp')
+        # Get the latest focus data for each student
+        data_streams = DataStream.objects.filter(
+            room=room
+        ).order_by('-timestamp')
+        
         serializer = DataStreamSerializer(data_streams, many=True)
         response_data = serializer.data
 
+        # Convert UUIDs to strings
+        for item in response_data:
+            item['room'] = str(item['room'])
+            item['user'] = str(item['user'])
+
         # Cache the result
-        cache.set(cache_key, json.dumps(response_data), FOCUS_DATA_CACHE_TIMEOUT)
-        
+        cache.set(cache_key, json.dumps(response_data),
+                  FOCUS_DATA_CACHE_TIMEOUT)
+
         return Response(response_data)
 
     except Room.DoesNotExist:

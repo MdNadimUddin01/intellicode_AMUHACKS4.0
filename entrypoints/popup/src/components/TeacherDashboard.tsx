@@ -1,5 +1,17 @@
-import { useState, useEffect } from "react";
-import { Search, Clock, Users, BarChart, AlertTriangle, CheckCircle, Menu, X, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Search,
+  Clock,
+  Users,
+  BarChart,
+  AlertTriangle,
+  CheckCircle,
+  Menu,
+  X,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import axios from "axios";
 import { backendUrl } from "../../environment";
 import { TeacherDashboardProps } from "../types/props";
@@ -25,130 +37,154 @@ interface WindowSize {
 type SortBy = "name" | "email" | "focus" | "joinTime";
 type SortDirection = "asc" | "desc";
 
-const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => {
+const TeacherDashboard = ({
+  onLogout,
+  onLeaveMeeting,
+}: TeacherDashboardProps) => {
   const [meetingTime, setMeetingTime] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortBy>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [windowSize, setWindowSize] = useState<WindowSize>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    width: typeof window !== "undefined" ? window.innerWidth : 0,
+    height: typeof window !== "undefined" ? window.innerHeight : 0,
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isFiltersVisible, setIsFiltersVisible] = useState<boolean>(false);
-  const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
-  const [meetingCode , setMeetingCode] = useState("");
+  const [expandedStudentId, setExpandedStudentId] = useState<number | null>(
+    null
+  );
+  const [meeting, setMeeting] = useState<any | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [meetingId, setMeetingId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if(localStorage.getItem("teacherMeetingInfo")){
-      setMeetingCode(JSON.parse(localStorage.getItem("teacherMeetingInfo"))?.meeting_id);
+    if (localStorage.getItem("teacherMeetingInfo")) {
+      const meetingInfo = JSON.parse(
+        localStorage.getItem("teacherMeetingInfo") || ""
+      );
+      setMeetingId(meetingInfo.meeting_id);
+      console.log("Meeting ID:", meetingId);
+      setMeeting(meetingInfo);
     }
-  },[]);
+  }, []);
 
   const getAuthHeader = () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      setError('Please log in first');
+      setError("Please log in first");
       return undefined;
     }
     return {
-      'Authorization': `Token ${JSON.parse(token)}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
+      Authorization: `Token ${JSON.parse(token)}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
     };
   };
 
-  const handleMeeting = async():Promise<void> => {
-
+  const handleMeeting = async (): Promise<void> => {
     try {
-
-        const {data} = await axios.post(backendUrl + `/classroom/${meetingCode}/deactivate`, {}, {
-          headers: getAuthHeader()
-        })
-        localStorage.removeItem("teacherMeetingInfo");
-
-    } catch (error) {
-      console.log(error);
-    }    
-
-  }
-
-  async function fetchParticipants():Promise<void>{
-
-    try {
-
-      const {data} = await axios.get(backendUrl + `/classroom/${meetingCode}/participants/`, {
-        headers: getAuthHeader()
-      });
-      localStorage.setItem("participants" , JSON.stringify(data));
-
-
+      const { data } = await axios.post(
+        backendUrl + `/classroom/${meetingId}/deactivate/`,
+        {},
+        {
+          headers: getAuthHeader(),
+        }
+      );
+      localStorage.removeItem("teacherMeetingInfo");
+      onLeaveMeeting();
     } catch (error) {
       console.log(error);
     }
-  }
-  
-  async function allFocusData(){
+  };
+  const fetchFocusData = useCallback(async () => {
+    const authHeader = getAuthHeader();
+    if (!authHeader || !meetingId) {
+      setError("Authentication failed or missing meeting ID");
+      setIsLoading(false);
+      return;
+    }
 
     try {
+      const abortController = new AbortController();
+      const { data } = await axios.get(
+        `${backendUrl}/classroom/${meetingId}/get-all-focus-data/`,
+        {
+          headers: authHeader,
+          signal: abortController.signal,
+        }
+      );
 
-      const {data} = await axios.get(backendUrl + `classroom/${meetingCode}/get-all-focus-data/`, {
-        headers: getAuthHeader()
+      // Validate and transform API response
+      const isValidData = Array.isArray(data);
+      if (!isValidData) {
+        throw new Error("Invalid data format received from server");
+      }
+
+      const transformedData = data.map((item: any) => {
+        const timestamp = item.timestamp
+          ? new Date(item.timestamp)
+          : new Date();
+        return {
+          id: item.user || Date.now().toString(),
+          name: item.username || "Unknown Student",
+          focus: Number(item.focus_data) || 0,
+          status: item.status || "offline",
+          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${
+            item.username || "user"
+          }`,
+          joinTime: timestamp.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isActive: (item.status || "offline") === "online",
+          hasCamera: Math.random() > 0.2, // Simulated device status
+          hasMic: Math.random() > 0.2, // Simulated device status
+        };
       });
-      localStorage.setItem("partcipantsFocusData" , JSON.stringify(data));
 
-    } catch (error) {
-      console.log(error)
-    }
-    
-  }
-
-  useEffect(() => {
-    const fetchFocusData = async () => {
-      const authHeader = getAuthHeader();
-      if (!authHeader) return;
-
-      try {
-        const { data } = await axios.get(`${backendUrl}/classroom/${meetingCode}/get-all-focus-data/`, {
-          headers: authHeader
-        });
-
-        // Transform the data to match our current structure
-        const transformedData = data.map((item: any) => ({
-          id: item.user,
-          name: item.username,
-          focus: item.focus_data,
-          avatar: `/api/placeholder/40/40`,
-          joinTime: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isActive: item.status === 'online',
-          hasCamera: true, // We don't have this info from the API
-          hasMic: true    // We don't have this info from the API
-        }));
-
+      // Only update state if component is still mounted
+      if (!abortController.signal.aborted) {
         setStudents(transformedData);
         setError(null);
-      } catch (error: any) {
-        console.error('Error fetching focus data:', error);
-        setError(error.response?.data?.message || 'Failed to fetch focus data');
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    if (meetingCode) {
-      fetchFocusData();
-      // Refresh data every 30 seconds
-      const interval = setInterval(fetchFocusData, 30000);
-      return () => clearInterval(interval);
+    } catch (error: any) {
+      if (axios.isCancel(error)) {
+        console.log("Request aborted:", error.message);
+      } else if (error.response) {
+        setError(
+          `Server error: ${error.response.status} ${error.response.statusText}`
+        );
+      } else if (error.request) {
+        setError("Network error - Please check your internet connection");
+      } else {
+        setError("An unexpected error occurred");
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }, [meetingCode]);
+  }, [meetingId]);
 
   useEffect(() => {
-    fetchParticipants();
-  },[])
+    if (!meetingId) return;
+
+    // Immediate first fetch
+    const abortController = new AbortController();
+
+    const fetchInterval = setInterval(() => {
+      fetchFocusData();
+    }, 3000);
+
+    // Initial call
+    fetchFocusData();
+
+    return () => {
+      abortController.abort();
+      clearInterval(fetchInterval);
+    };
+  }, [meetingId, fetchFocusData]);
 
   // Handle window resize
   useEffect(() => {
@@ -159,8 +195,8 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
       });
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Format time as hh:mm:ss
@@ -168,16 +204,10 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
     const hours = Math.floor(timeInSeconds / 3600);
     const minutes = Math.floor((timeInSeconds % 3600) / 60);
     const seconds = timeInSeconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
-
-  // Simulate meeting timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setMeetingTime(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Get focus color based on value
   const getFocusColor = (focus: number): string => {
@@ -188,9 +218,26 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
 
   // Get focus icon based on value
   const getFocusIcon = (focus: number) => {
-    if (focus >= 80) return <CheckCircle size={windowSize.width < 640 ? 14 : 16} className="text-green-500" />;
-    if (focus >= 60) return <AlertTriangle size={windowSize.width < 640 ? 14 : 16} className="text-yellow-500" />;
-    return <AlertTriangle size={windowSize.width < 640 ? 14 : 16} className="text-red-500" />;
+    if (focus >= 80)
+      return (
+        <CheckCircle
+          size={windowSize.width < 640 ? 14 : 16}
+          className="text-green-500"
+        />
+      );
+    if (focus >= 60)
+      return (
+        <AlertTriangle
+          size={windowSize.width < 640 ? 14 : 16}
+          className="text-yellow-500"
+        />
+      );
+    return (
+      <AlertTriangle
+        size={windowSize.width < 640 ? 14 : 16}
+        className="text-red-500"
+      />
+    );
   };
 
   // Handle sorting
@@ -205,20 +252,23 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
 
   // Filter and sort students
   const filteredAndSortedStudents = students
-    .filter((student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter(
+      (student) =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       const aValue = a[sortBy];
       const bValue = b[sortBy];
 
-      if (typeof aValue === 'string') {
+      if (typeof aValue === "string") {
         return sortDirection === "asc"
           ? aValue.localeCompare(bValue as string)
           : (bValue as string).localeCompare(aValue);
       }
-      return sortDirection === "asc" ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number);
+      return sortDirection === "asc"
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
     });
 
   const getSortIcon = (column: SortBy): string | null => {
@@ -242,9 +292,7 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500 text-center">
-          {error}
-        </div>
+        <div className="text-red-500 text-center">{error}</div>
       </div>
     );
   }
@@ -264,7 +312,7 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             {isSmallScreen && (
-              <button 
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="mr-2 p-1 rounded-md hover:bg-blue-700 focus:outline-none"
               >
@@ -273,32 +321,44 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
             )}
             <div>
               <h1 className="font-medium text-base sm:text-lg truncate">
-                {isSmallScreen ? "Geometry Review" : "Mathematics - Geometry Review"}
+                {isSmallScreen
+                  ? "Geometry Review"
+                  : "Mathematics - Geometry Rev"}
               </h1>
               {!isSmallScreen && (
                 <div className="flex items-center space-x-4 text-blue-100 text-xs sm:text-sm mt-1">
                   <div className="flex items-center">
-                    <Clock size={windowSize.width < 768 ? 12 : 14} className="mr-1" />
+                    <Clock
+                      size={windowSize.width < 768 ? 12 : 14}
+                      className="mr-1"
+                    />
                     <span>{formatTime(meetingTime)}</span>
                   </div>
                   <div className="flex items-center">
-                    <Users size={windowSize.width < 768 ? 12 : 14} className="mr-1" />
-                    <span>{students.filter(s => s.isActive).length} Students</span>
+                    <Users
+                      size={windowSize.width < 768 ? 12 : 14}
+                      className="mr-1"
+                    />
+                    <span>
+                      {students.filter((s) => s.isActive).length} Students
+                    </span>
                   </div>
                 </div>
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center">
             {isSmallScreen && (
               <div className="flex items-center mr-2">
                 <Users size={16} className="mr-1 text-blue-200" />
-                <span className="text-xs text-blue-100">{students.filter(s => s.isActive).length}</span>
+                <span className="text-xs text-blue-100">
+                  {students.filter((s) => s.isActive).length}
+                </span>
               </div>
             )}
             <div className="text-xs sm:text-sm bg-blue-500 px-2 py-1 rounded-full truncate">
-              {isSmallScreen ? "ID: XYZ123" : "Meeting ID: XYZ123"}
+              {meetingId}
             </div>
           </div>
         </div>
@@ -306,8 +366,11 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
 
       {/* Mobile menu (slide-out for small screens) */}
       {isSmallScreen && isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={() => setIsMobileMenuOpen(false)}>
-          <div 
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div
             className="absolute top-0 left-0 h-full w-64 bg-white shadow-lg z-50 p-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -317,10 +380,12 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                 <X size={20} className="text-gray-500" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
-                <span className="text-sm font-medium text-gray-600 block mb-2">Meeting Info</span>
+                <span className="text-sm font-medium text-gray-600 block mb-2">
+                  Meeting Info
+                </span>
                 <div className="pl-2 space-y-1">
                   <div className="flex items-center text-sm text-gray-700">
                     <Clock size={14} className="mr-1 text-blue-500" />
@@ -328,27 +393,45 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                   </div>
                   <div className="flex items-center text-sm text-gray-700">
                     <Users size={14} className="mr-1 text-blue-500" />
-                    <span>{students.filter(s => s.isActive).length} Students</span>
+                    <span>
+                      {students.filter((s) => s.isActive).length} Students
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
+              {/* student */}
               <div>
-                <span className="text-sm font-medium text-gray-600 block mb-2">Focus Summary</span>
+                <span className="text-sm font-medium text-gray-600 block mb-2">
+                  Focus Summary
+                </span>
                 <div className="pl-2 space-y-1">
                   <div className="flex items-center text-sm text-gray-700">
                     <BarChart size={14} className="mr-1 text-blue-500" />
-                    <span>Average: {Math.round(students.reduce((sum, s) => sum + s.focus, 0) / students.length)}%</span>
+                    <span>
+                      Average:{" "}
+                      {Math.round(
+                        students.reduce((sum, s) => sum + s.focus, 0) /
+                          students.length
+                      )}
+                      %
+                    </span>
                   </div>
                   <div className="flex items-center text-sm text-gray-700">
                     <AlertTriangle size={14} className="mr-1 text-red-500" />
-                    <span>{students.filter(s => s.focus < 60).length} Need Attention</span>
+                    <span>
+                      {students.filter((s) => s.focus < 60).length} Need
+                      Attention
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="pt-4 flex flex-col gap-4 border-t border-gray-200">
-                <button onClick={handleMeeting} className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm">
+                <button
+                  onClick={handleMeeting}
+                  className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm"
+                >
                   End Meeting
                 </button>
                 <button className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm">
@@ -372,10 +455,13 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <Search size={isSmallScreen ? 14 : 16} className="absolute left-3 top-2.5 text-gray-400" />
-            
+            <Search
+              size={isSmallScreen ? 14 : 16}
+              className="absolute left-3 top-2.5 text-gray-400"
+            />
+
             {isSmallScreen && (
-              <button 
+              <button
                 className="absolute right-3 top-2.5 text-gray-400"
                 onClick={() => setIsFiltersVisible(!isFiltersVisible)}
               >
@@ -383,20 +469,20 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
               </button>
             )}
           </div>
-          
+
           {(!isSmallScreen || isFiltersVisible) && (
             <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-2 sm:mb-0 bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded-md">
               <button className="flex-grow sm:flex-grow-0 px-2 py-1 text-xs rounded-md border border-gray-300 bg-white">
                 All Students ({students.length})
               </button>
               <button className="flex-grow sm:flex-grow-0 px-2 py-1 text-xs rounded-md border border-gray-300 bg-white">
-                Needs Attention ({students.filter(s => s.focus < 60).length})
+                Needs Attention ({students.filter((s) => s.focus < 60).length})
               </button>
               <button className="flex-grow sm:flex-grow-0 px-2 py-1 text-xs rounded-md border border-gray-300 bg-white">
-                Engaged ({students.filter(s => s.focus >= 80).length})
+                Engaged ({students.filter((s) => s.focus >= 80).length})
               </button>
               <button className="flex-grow sm:flex-grow-0 px-2 py-1 text-xs rounded-md border border-gray-300 bg-white">
-                Inactive ({students.filter(s => !s.isActive).length})
+                Inactive ({students.filter((s) => !s.isActive).length})
               </button>
             </div>
           )}
@@ -409,8 +495,8 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                       onClick={() => handleSort("name")}
                     >
@@ -420,8 +506,8 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                       </div>
                     </th>
                     {!isMediumScreen && (
-                      <th 
-                        scope="col" 
+                      <th
+                        scope="col"
                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSort("email")}
                       >
@@ -431,8 +517,8 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                         </div>
                       </th>
                     )}
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                       onClick={() => handleSort("focus")}
                     >
@@ -441,8 +527,8 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                         <span className="ml-1">{getSortIcon("focus")}</span>
                       </div>
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                       onClick={() => handleSort("joinTime")}
                     >
@@ -451,8 +537,8 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                         <span className="ml-1">{getSortIcon("joinTime")}</span>
                       </div>
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
                       Status
@@ -461,26 +547,37 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredAndSortedStudents.map((student) => (
-                    <tr key={student.id} className={!student.isActive ? "bg-gray-50" : ""}>
+                    <tr
+                      key={student.id}
+                      className={!student.isActive ? "bg-gray-50" : ""}
+                    >
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden">
                             <img src={student.avatar} alt="" />
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {student.name}
+                            </div>
                           </div>
                         </div>
                       </td>
                       {!isMediumScreen && (
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{student.email}</div>
+                          <div className="text-sm text-gray-500">
+                            {student.email}
+                          </div>
                         </td>
                       )}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           {getFocusIcon(student.focus)}
-                          <div className={`ml-2 text-sm font-medium ${getFocusColor(student.focus)}`}>
+                          <div
+                            className={`ml-2 text-sm font-medium ${getFocusColor(
+                              student.focus
+                            )}`}
+                          >
                             {student.focus}%
                           </div>
                         </div>
@@ -499,13 +596,13 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                               Inactive
                             </span>
                           )}
-                          
+
                           {!student.hasCamera && (
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                               No Camera
                             </span>
                           )}
-                          
+
                           {!student.hasMic && (
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                               No Mic
@@ -525,11 +622,17 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
         {isSmallScreen && (
           <div className="space-y-2 mb-3">
             {filteredAndSortedStudents.map((student) => (
-              <div 
-                key={student.id} 
-                className={`bg-white rounded-lg border ${!student.isActive ? "border-gray-200" : student.focus < 60 ? "border-red-200" : "border-gray-200"} overflow-hidden`}
+              <div
+                key={student.id}
+                className={`bg-white rounded-lg border ${
+                  !student.isActive
+                    ? "border-gray-200"
+                    : student.focus < 60
+                    ? "border-red-200"
+                    : "border-gray-200"
+                } overflow-hidden`}
               >
-                <div 
+                <div
                   className="p-3 flex justify-between items-center cursor-pointer"
                   onClick={() => toggleStudentExpand(student.id)}
                 >
@@ -538,13 +641,21 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                       <img src={student.avatar} alt="" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                      <div className="text-xs text-gray-500">{student.joinTime}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {student.name}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {student.joinTime}
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
-                    <div className={`text-sm font-medium ${getFocusColor(student.focus)}`}>
+                    <div
+                      className={`text-sm font-medium ${getFocusColor(
+                        student.focus
+                      )}`}
+                    >
                       {student.focus}%
                     </div>
                     <button>
@@ -556,29 +667,31 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
                     </button>
                   </div>
                 </div>
-                
+
                 {expandedStudentId === student.id && (
                   <div className="px-3 pb-3 pt-0 border-t border-gray-100">
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="text-gray-500">Email:</div>
-                      <div className="font-medium text-gray-800 truncate">{student.email}</div>
-                      
+                      <div className="font-medium text-gray-800 truncate">
+                        {student.email}
+                      </div>
+
                       <div className="text-gray-500">Status:</div>
                       <div className="font-medium text-gray-800">
                         {student.isActive ? "Active" : "Inactive"}
                       </div>
-                      
+
                       <div className="text-gray-500">Camera:</div>
                       <div className="font-medium text-gray-800">
                         {student.hasCamera ? "On" : "Off"}
                       </div>
-                      
+
                       <div className="text-gray-500">Microphone:</div>
                       <div className="font-medium text-gray-800">
                         {student.hasMic ? "On" : "Off"}
                       </div>
                     </div>
-                    
+
                     <div className="mt-2 flex space-x-2">
                       <button className="flex-1 px-2 py-1 text-xs rounded-md bg-blue-100 text-blue-700">
                         Message
@@ -593,45 +706,69 @@ const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => 
             ))}
           </div>
         )}
-        
+
         {/* Focus Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-1 sm:mb-2">
-              <h3 className="text-xs sm:text-sm font-medium text-gray-700">Class Focus</h3>
-              <BarChart size={isSmallScreen ? 14 : 16} className="text-gray-400" />
+              <h3 className="text-xs sm:text-sm font-medium text-gray-700">
+                Class Focus
+              </h3>
+              <BarChart
+                size={isSmallScreen ? 14 : 16}
+                className="text-gray-400"
+              />
             </div>
             <div className="text-xl sm:text-2xl font-bold text-blue-600">
-              {Math.round(students.reduce((sum, student) => sum + student.focus, 0) / students.length)}%
+              {Math.round(
+                students.reduce((sum, student) => sum + student.focus, 0) /
+                  students.length
+              )}
+              %
             </div>
             <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full" 
-                style={{ width: `${Math.round(students.reduce((sum, student) => sum + student.focus, 0) / students.length)}%` }}
+              <div
+                className="bg-blue-600 h-2.5 rounded-full"
+                style={{
+                  width: `${Math.round(
+                    students.reduce((sum, student) => sum + student.focus, 0) /
+                      students.length
+                  )}%`,
+                }}
               ></div>
             </div>
           </div>
-          
+
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-1 sm:mb-2">
-              <h3 className="text-xs sm:text-sm font-medium text-gray-700">Attention Required</h3>
-              <AlertTriangle size={isSmallScreen ? 14 : 16} className="text-red-500" />
+              <h3 className="text-xs sm:text-sm font-medium text-gray-700">
+                Attention Required
+              </h3>
+              <AlertTriangle
+                size={isSmallScreen ? 14 : 16}
+                className="text-red-500"
+              />
             </div>
             <div className="text-xl sm:text-2xl font-bold text-red-500">
-              {students.filter(s => s.focus < 60).length}
+              {students.filter((s) => s.focus < 60).length}
             </div>
             <div className="mt-1 text-xs sm:text-sm text-gray-500">
               Students with focus below 60%
             </div>
           </div>
-          
+
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-1 sm:mb-2">
-              <h3 className="text-xs sm:text-sm font-medium text-gray-700">Engaged Students</h3>
-              <CheckCircle size={isSmallScreen ? 14 : 16} className="text-green-500" />
+              <h3 className="text-xs sm:text-sm font-medium text-gray-700">
+                Engaged Students
+              </h3>
+              <CheckCircle
+                size={isSmallScreen ? 14 : 16}
+                className="text-green-500"
+              />
             </div>
             <div className="text-xl sm:text-2xl font-bold text-green-500">
-              {students.filter(s => s.focus >= 80).length}
+              {students.filter((s) => s.focus >= 80).length}
             </div>
             <div className="mt-1 text-xs sm:text-sm text-gray-500">
               Students with focus above 80%

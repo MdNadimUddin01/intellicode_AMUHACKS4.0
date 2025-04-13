@@ -115,7 +115,7 @@ function App() {
           />
         );
       case "teacherDashboard":
-        return <TeacherDashboard onLogout={() => setCurrentPage("home")} />;
+        return <TeacherDashboard onLeaveMeeting={() => setCurrentPage("createMeeting")} onLogout={() => setCurrentPage("home")} />;
       case "studentDashboard":
         return (
           <StudentDashboard

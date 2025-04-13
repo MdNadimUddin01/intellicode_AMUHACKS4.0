@@ -17,6 +17,7 @@ export interface SignupFormProps {
 
 export interface TeacherDashboardProps {
   onLogout: () => void;
+  onLeaveMeeting : () => void
 }
 
 export interface StudentDashboardProps {

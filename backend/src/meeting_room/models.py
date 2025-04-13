@@ -45,7 +45,8 @@ class DataStream(models.Model):
     """Model to store focus data for analysis"""
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='data_streams')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='focus_data')
-    data = models.JSONField()
+    focus_data = models.FloatField()  # Store focus percentage
+    status = models.CharField(max_length=20, choices=[('online', 'Online'), ('offline', 'Offline')])
     timestamp = models.DateTimeField(auto_now=True)
 
     class Meta:

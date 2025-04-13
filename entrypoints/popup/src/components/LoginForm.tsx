@@ -12,7 +12,7 @@ interface FormState {
   isLoading: boolean;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onTeacherLogin, onStudentLogin, onSignupClick, onBackClick }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onTeacherLogin, onStudentLogin, onSignupClick }) => {
   // Form state using useState with TypeScript
   const [username, setusername] = useState<string>('');
   const [password, setPassword] = useState<string>('');

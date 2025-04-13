@@ -36,6 +36,8 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({ onSubmit }) => {
           },
         }
       );
+      
+      console.log(data);
 
       localStorage.setItem("studentMeetingInfo", JSON.stringify(data.room));
       setMessage(`Joining meeting with code: ${meetingCode}`);

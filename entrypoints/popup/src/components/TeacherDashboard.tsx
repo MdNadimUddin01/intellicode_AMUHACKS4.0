@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, Clock, Users, Bell, BarChart, AlertTriangle, CheckCircle, Menu, X, Filter, ChevronDown, ChevronUp } from "lucide-react";
-import { TeacherDashboardProps } from "../types/props";
+import { Search, Clock, Users, BarChart, AlertTriangle, CheckCircle, Menu, X, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import axios from "axios";
 import { backendUrl } from "../../environment";
+import { TeacherDashboardProps } from "../types/props";
 
 // Define TypeScript interfaces
 // interface Student {
@@ -25,7 +25,7 @@ interface WindowSize {
 type SortBy = "name" | "email" | "focus" | "joinTime";
 type SortDirection = "asc" | "desc";
 
-const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
+const TeacherDashboard = ({ onLogout, leaveMeeting }: TeacherDashboardProps) => {
   const [meetingTime, setMeetingTime] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortBy>("name");
@@ -38,70 +38,36 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
   const [isFiltersVisible, setIsFiltersVisible] = useState<boolean>(false);
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
   const [meetingCode , setMeetingCode] = useState("");
+  const [students, setStudents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [students, setStudents] = useState<any[]>([
-    {
-      id: 1,
-      name: "Emily Johnson",
-      email: "emily.j@school.edu",
-      focus: 95,
-      avatar: "/api/placeholder/40/40",
-      joinTime: "10:03 AM",
-      isActive: true,
-      hasCamera: true,
-      hasMic: true
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "m.chen@school.edu",
-      focus: 78,
-      avatar: "/api/placeholder/40/40",
-      joinTime: "10:01 AM",
-      isActive: true,
-      hasCamera: true,
-      hasMic: false
-    },
-    {
-      id: 3,
-      name: "Sophia Williams",
-      email: "s.williams@school.edu",
-      focus: 88,
-      avatar: "/api/placeholder/40/40",
-      joinTime: "10:05 AM",
-      isActive: true,
-      hasCamera: false,
-      hasMic: true
-    },
-    {
-      id: 4,
-      name: "Aiden Rodriguez",
-      email: "a.rodriguez@school.edu",
-      focus: 42,
-      avatar: "/api/placeholder/40/40",
-      joinTime: "10:02 AM",
-      isActive: true,
-      hasCamera: true,
-      hasMic: true
-    },
-    {
-      id: 5,
-      name: "Olivia Martinez",
-      email: "o.martinez@school.edu",
-      focus: 65,
-      avatar: "/api/placeholder/40/40",
-      joinTime: "10:07 AM",
-      isActive: false,
-      hasCamera: true,
-      hasMic: true
-    },
-  ]);
+  useEffect(() => {
+    if(localStorage.getItem("teacherMeetingInfo")){
+      setMeetingCode(JSON.parse(localStorage.getItem("teacherMeetingInfo"))?.meeting_id);
+    }
+  },[]);
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please log in first');
+      return undefined;
+    }
+    return {
+      'Authorization': `Token ${JSON.parse(token)}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    };
+  };
 
   const handleMeeting = async():Promise<void> => {
 
     try {
 
-        const {data} = await axios.post(backendUrl + `/classroom/${meetingCode}/deactivate`)
+        const {data} = await axios.post(backendUrl + `/classroom/${meetingCode}/deactivate`, {}, {
+          headers: getAuthHeader()
+        })
         localStorage.removeItem("teacherMeetingInfo");
 
     } catch (error) {
@@ -114,7 +80,9 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
 
     try {
 
-      const {data} = await axios.get(backendUrl + `/classroom/${meetingCode}/participants`);
+      const {data} = await axios.get(backendUrl + `/classroom/${meetingCode}/participants/`, {
+        headers: getAuthHeader()
+      });
       localStorage.setItem("participants" , JSON.stringify(data));
 
 
@@ -127,7 +95,9 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
 
     try {
 
-      const {data} = await axios.get(backendUrl + `classroom/${meetingCode}/get-all-focus-data`);
+      const {data} = await axios.get(backendUrl + `classroom/${meetingCode}/get-all-focus-data/`, {
+        headers: getAuthHeader()
+      });
       localStorage.setItem("partcipantsFocusData" , JSON.stringify(data));
 
     } catch (error) {
@@ -135,6 +105,46 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
     }
     
   }
+
+  useEffect(() => {
+    const fetchFocusData = async () => {
+      const authHeader = getAuthHeader();
+      if (!authHeader) return;
+
+      try {
+        const { data } = await axios.get(`${backendUrl}/classroom/${meetingCode}/get-all-focus-data/`, {
+          headers: authHeader
+        });
+
+        // Transform the data to match our current structure
+        const transformedData = data.map((item: any) => ({
+          id: item.user,
+          name: item.username,
+          focus: item.focus_data,
+          avatar: `/api/placeholder/40/40`,
+          joinTime: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isActive: item.status === 'online',
+          hasCamera: true, // We don't have this info from the API
+          hasMic: true    // We don't have this info from the API
+        }));
+
+        setStudents(transformedData);
+        setError(null);
+      } catch (error: any) {
+        console.error('Error fetching focus data:', error);
+        setError(error.response?.data?.message || 'Failed to fetch focus data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (meetingCode) {
+      fetchFocusData();
+      // Refresh data every 30 seconds
+      const interval = setInterval(fetchFocusData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [meetingCode]);
 
   useEffect(() => {
     fetchParticipants();
@@ -195,23 +205,20 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
 
   // Filter and sort students
   const filteredAndSortedStudents = students
-    .filter(student => 
+    .filter((student) =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       const aValue = a[sortBy];
       const bValue = b[sortBy];
-      
+
       if (typeof aValue === 'string') {
-        return sortDirection === "asc" 
+        return sortDirection === "asc"
           ? aValue.localeCompare(bValue as string)
           : (bValue as string).localeCompare(aValue);
-      } else {
-        return sortDirection === "asc" 
-          ? (aValue as number) - (bValue as number)
-          : (bValue as number) - (aValue as number);
       }
+      return sortDirection === "asc" ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number);
     });
 
   const getSortIcon = (column: SortBy): string | null => {
@@ -231,6 +238,24 @@ const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
       setExpandedStudentId(id);
     }
   };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500 text-center">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-100 w-full min-h-screen sm:min-h-0 overflow-hidden flex flex-col relative">

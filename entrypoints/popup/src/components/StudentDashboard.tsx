@@ -15,17 +15,25 @@ import axios from "axios";
 
 interface StudentDashboardProps {
   onLogout: () => void;
-  onJoinMeeting: () => void;
+  onLeaveMeeting: () => void;
+}
+
+interface Meeting {
+  meeting_id: string;
+  name: string;
+  teacher: string;
+  // Add other meeting properties here if needed
 }
 
 export default function StudentDashboard({
   onLogout,
-  onJoinMeeting,
+  onLeaveMeeting,
 }: StudentDashboardProps) {
   const [meetingTime, setMeetingTime] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
   const [meetingCode, setMeetingCode] = useState("");
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 0,
     height: typeof window !== "undefined" ? window.innerHeight : 0,
@@ -44,14 +52,64 @@ export default function StudentDashboard({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    if (localStorage.getItem("studentMeetingInfo")) {
+      const meetingInfo = localStorage.getItem("studentMeetingInfo");
+      console.log("MEETINGINFO : ", typeof meetingInfo);
+
+      if (meetingInfo) {
+        const parsedMeeting = JSON.parse(meetingInfo) as Meeting;
+        setMeeting(parsedMeeting);
+        setMeetingCode(parsedMeeting.meeting_id);
+        console.log("meeting : ", parsedMeeting);
+      }
+    }
+  }, []);
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No token found in localStorage");
+      return {};
+    }
+    console.log("Using token:", token.substring(0, 10) + "..."); // Log first 10 chars for debugging
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const leaveMeeting = async () => {
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/classroom/${meetingCode}/leave/`,
+        {},
+        {
+          headers: getAuthHeader(),
+        }
+      );
+
+      localStorage.removeItem("studentMeetingInfo");
+      onLeaveMeeting();
+      console.log("LEFT", data);
+
+      return data;
+    } catch (error) {
+      console.error("Error leaving meeting:", error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          console.error("Authentication failed. Please try logging in again.");
+        }
+      }
+      throw error;
+    }
+  };
+
   async function handleLogout() {
     setShowExitConfirm(false);
 
     try {
-      const { data } = await axios.post(
-        backendUrl + `/classroom/${meetingCode}/leave`
-      );
-      localStorage.removeItem("studentMeetingInfo");
+      await leaveMeeting();
+      onLogout();
+
+      console.log("HELLO ");
     } catch (error) {
       console.log(error);
     }
@@ -84,7 +142,7 @@ export default function StudentDashboard({
         <div className="flex justify-between items-center flex-wrap sm:flex-nowrap">
           <div className={isSmallScreen ? "w-full mb-1" : ""}>
             <h1 className="font-medium text-base sm:text-lg truncate">
-              Math Class - Geometry Review
+              {meeting?.name}
             </h1>
             <div className="flex items-center text-blue-100 text-xs sm:text-sm mt-1">
               <div className="flex items-center">
@@ -99,7 +157,7 @@ export default function StudentDashboard({
               isSmallScreen ? "ml-auto mt-1" : ""
             }`}
           >
-            ID: meetingCode
+            ID: {meeting?.meeting_id}
           </div>
         </div>
       </header>
@@ -166,13 +224,10 @@ export default function StudentDashboard({
             <div className="px-2 sm:px-3 pb-2 sm:pb-3 pt-0">
               <div className="grid grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm">
                 <div className="text-gray-600">Subject:</div>
-                <div className="font-medium">Mathematics</div>
-                <div className="text-gray-600">Topic:</div>
-                <div className="font-medium">Geometry Review</div>
+                <div className="font-medium">{meeting?.name}</div>
+
                 <div className="text-gray-600">Teacher:</div>
-                <div className="font-medium">Ms. Johnson</div>
-                <div className="text-gray-600">Duration:</div>
-                <div className="font-medium">45 minutes</div>
+                <div className="font-medium">{meeting?.teacher}</div>
               </div>
             </div>
           )}
@@ -205,7 +260,7 @@ export default function StudentDashboard({
                 Cancel
               </button>
               <button
-                onClick={handleLogout}
+                onClick={leaveMeeting}
                 className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-xs sm:text-sm"
               >
                 Leave

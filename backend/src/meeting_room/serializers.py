@@ -52,10 +52,10 @@ class RoomParticipantSerializer(serializers.ModelSerializer):
 
 
 class DataStreamSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username', read_only=True)
     room_name = serializers.CharField(source='room.name', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = DataStream
-        fields = ['room', 'room_name', 'user', 'username', 'data', 'timestamp']
+        fields = ['room', 'room_name', 'user', 'username', 'focus_data', 'status', 'timestamp']
         read_only_fields = ['timestamp']

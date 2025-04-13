@@ -4,15 +4,13 @@ from .serializers import RoomSerializer, RoomParticipantSerializer, DataStreamSe
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from django.contrib.auth import authenticate, login
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from .serializers import CustomUserSerializer
-from rest_framework.permissions import IsAuthenticated
 import logging
 from django.core.cache import cache
-from django.utils import timezone
 import json
+from .models import Room, RoomParticipant
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +221,7 @@ def save_focus_data(request, meeting_id):
         # Use select_for_update to prevent race conditions
         with transaction.atomic():
             room = Room.objects.select_for_update().get(meeting_id=meeting_id)
-            
+
             # Check if user is in the room
             if not RoomParticipant.objects.filter(room=room, user=request.user).exists():
                 return Response(

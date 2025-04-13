@@ -67,6 +67,10 @@ ROOT_URLCONF = 'src.urls'
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+CUSTOM_USER_MODEL = 'meeting_room.CustomUser'
+
+SITE_ID = 1
+
 # ASGI_APPLICATION = 'src.asgi.application'
 
 # Channels

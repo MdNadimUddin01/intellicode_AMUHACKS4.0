@@ -1,6 +1,6 @@
-import { defineConfig } from 'wxt';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from "wxt";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   vite: () => ({
@@ -8,10 +8,11 @@ export default defineConfig({
   }),
 
   manifest: {
-    name: 'Focus Detection Extension',
-    description: 'A browser extension that detects user focus using facial landmarks',
-    version: '1.0.0',
-    
+    name: "Focus Detection Extension",
+    description:
+      "A browser extension that detects user focus using facial landmarks",
+    version: "1.0.0",
+
     // Add camera permission
     permissions: ['camera'],
     
@@ -25,7 +26,8 @@ export default defineConfig({
     
     // Content security policy to allow camera access and external scripts
     content_security_policy: {
-      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net;"
+      extension_pages:
+        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net http://localhost:8000;",
     },
     
     // For accessing the camera API

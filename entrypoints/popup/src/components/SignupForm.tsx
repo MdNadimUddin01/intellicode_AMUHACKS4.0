@@ -1,42 +1,55 @@
-import { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, User, UserCheck, User2 } from 'lucide-react';
-import { SignupFormProps } from '../types/props';
-import { backendUrl } from '../../environment';
-import axios from 'axios';
+import { useState } from "react";
+import { Lock, Mail, Eye, EyeOff, User, UserCheck, User2 } from "lucide-react";
+import { SignupFormProps } from "../types/props";
+import { backendUrl } from "../../environment";
+import axios from "axios";
 
-export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setusername] = useState('');
-  const [role, setRole] = useState('student');
+export default function SignupForm({
+  onSignupSuccess,
+  onBackClick,
+}: SignupFormProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setusername] = useState("");
+  const [role, setRole] = useState("student");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async():Promise<void> => {
-    
+  const handleSubmit = async (): Promise<void> => {
     if (password !== confirmPassword) {
       setPasswordMatch(false);
       return;
     }
-    
+
     setIsLoading(true);
+    setError(null);
 
-    const {data} = await axios.post(backendUrl + "/register" , {email , password , username , role});
-    localStorage.setItem("token" , JSON.stringify(data.token));
-    localStorage.setItem("user" , JSON.stringify(data.user));
-    // Simulating API call
-    
-    setTimeout(() => {
-      console.log('Signup attempt with:', { email, password, role });
+    try {
+      const { data } = await axios.post(backendUrl + "/register/", {
+        email,
+        password,
+        username,
+        role,
+      });
+
+      localStorage.setItem("token", JSON.stringify(data.token));
+      localStorage.setItem("user", JSON.stringify(data.user));
+      console.log("data_register: ", data);
+      onSignupSuccess(data.user.role);
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      setError(
+        err.response?.data?.message || "An error occurred during registration"
+      );
+    } finally {
       setIsLoading(false);
-    }, 1500);
-
-    onSignupSuccess(role === 'teacher');
+    }
   };
 
-  const handleConfirmPasswordChange = (e:any) => {
+  const handleConfirmPasswordChange = (e: any) => {
     setConfirmPassword(e.target.value);
     setPasswordMatch(true); // Reset error state on change
   };
@@ -44,58 +57,82 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
   return (
     <div className="w-full max-h-full flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm p-6 bg-white rounded-lg shadow-md">
+        {error && (
+          <div className="mb-4 p-3 rounded-md bg-red-50 text-red-700 border border-red-200">
+            {error}
+          </div>
+        )}
         <div className="flex justify-center mb-6">
           <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
             <UserCheck className="text-white" size={24} />
           </div>
         </div>
-        
-        <h1 className="text-xl font-bold text-center text-gray-800 mb-6">Create your account</h1>
-        
+
+        <h1 className="text-xl font-bold text-center text-gray-800 mb-6">
+          Create your account
+        </h1>
+
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               I am a:
             </label>
             <div className="grid grid-cols-2 gap-2">
-              <div 
-                className={`border rounded-md p-3 flex items-center cursor-pointer transition-colors ${role === 'student' ? 'bg-blue-50 border-blue-500' : 'border-gray-300 hover:bg-gray-50'}`}
-                onClick={() => setRole('student')}
+              <div
+                className={`border rounded-md p-3 flex items-center cursor-pointer transition-colors ${
+                  role === "student"
+                    ? "bg-blue-50 border-blue-500"
+                    : "border-gray-300 hover:bg-gray-50"
+                }`}
+                onClick={() => setRole("student")}
               >
-                <input 
-                  type="radio" 
-                  name="role" 
-                  id="role-student" 
-                  checked={role === 'student'} 
-                  onChange={() => setRole('student')}
+                <input
+                  type="radio"
+                  name="role"
+                  id="role-student"
+                  checked={role === "student"}
+                  onChange={() => setRole("student")}
                   className="h-4 w-4 text-blue-600 border-gray-300"
                 />
-                <label htmlFor="role-student" className="ml-2 block text-sm font-medium cursor-pointer">
+                <label
+                  htmlFor="role-student"
+                  className="ml-2 block text-sm font-medium cursor-pointer"
+                >
                   Student
                 </label>
               </div>
-              
-              <div 
-                className={`border rounded-md p-3 flex items-center cursor-pointer transition-colors ${role === 'teacher' ? 'bg-blue-50 border-blue-500' : 'border-gray-300 hover:bg-gray-50'}`}
-                onClick={() => setRole('teacher')}
+
+              <div
+                className={`border rounded-md p-3 flex items-center cursor-pointer transition-colors ${
+                  role === "teacher"
+                    ? "bg-blue-50 border-blue-500"
+                    : "border-gray-300 hover:bg-gray-50"
+                }`}
+                onClick={() => setRole("teacher")}
               >
-                <input 
-                  type="radio" 
-                  name="role" 
-                  id="role-teacher" 
-                  checked={role === 'teacher'} 
-                  onChange={() => setRole('teacher')}
+                <input
+                  type="radio"
+                  name="role"
+                  id="role-teacher"
+                  checked={role === "teacher"}
+                  onChange={() => setRole("teacher")}
                   className="h-4 w-4 text-blue-600 border-gray-300"
                 />
-                <label htmlFor="role-teacher" className="ml-2 block text-sm font-medium cursor-pointer">
+                <label
+                  htmlFor="role-teacher"
+                  className="ml-2 block text-sm font-medium cursor-pointer"
+                >
                   Teacher
                 </label>
               </div>
             </div>
           </div>
-          
+
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -115,7 +152,10 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
           </div>
 
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               User Name
             </label>
             <div className="relative">
@@ -133,9 +173,12 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
               />
             </div>
           </div>
-          
+
           <div className="mb-4">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Password
             </label>
             <div className="relative">
@@ -164,11 +207,16 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
                 )}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Must be at least 8 characters
+            </p>
           </div>
 
           <div className="mb-6">
-            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="confirm-password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Confirm Password
             </label>
             <div className="relative">
@@ -178,7 +226,9 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
               <input
                 id="confirm-password"
                 type={showPassword ? "text" : "password"}
-                className={`pl-10 w-full py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${!passwordMatch ? 'border-red-500' : 'border-gray-300'}`}
+                className={`pl-10 w-full py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                  !passwordMatch ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={handleConfirmPasswordChange}
@@ -186,10 +236,12 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
               />
             </div>
             {!passwordMatch && (
-              <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+              <p className="text-xs text-red-500 mt-1">
+                Passwords do not match
+              </p>
             )}
           </div>
-          
+
           <button
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex justify-center"
@@ -197,15 +249,31 @@ export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormP
             onClick={handleSubmit}
           >
             {isLoading ? (
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
             ) : null}
-            {isLoading ? 'Creating account...' : 'Sign up'}
+            {isLoading ? "Creating account..." : "Sign up"}
           </button>
         </form>
-        
+
         <div className="mt-6 text-center">
           <div className="text-sm">
             <button

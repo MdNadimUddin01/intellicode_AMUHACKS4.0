@@ -1,0 +1,11 @@
+#vscode
+.code-workspace
+
+#django
+__pycache__
+
+#database
+db.sqlite3
+
+#misc
+*.log

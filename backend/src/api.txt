@@ -1,0 +1,254 @@
+# API Documentation
+
+## Authentication
+All endpoints require token authentication except for Register and Login.
+
+Include the token in request headers:
+```
+Authorization: Token <your_token>
+```
+
+## Base URL
+```
+http://your-domain.com/api/
+```
+
+## Endpoints
+
+### 1. Register
+```http
+POST /register/
+```
+
+**Request Body:**
+```json
+{
+    "username": "string",
+    "email": "string",
+    "password": "string",
+    "role": "teacher" | "student"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+    "token": "your-jwt-token",
+    "user": {
+        "id": 1,
+        "username": "string",
+        "email": "string",
+        "role": "teacher" | "student"
+    }
+}
+```
+
+### 2. Login
+```http
+POST /login/
+```
+
+**Request Body:**
+```json
+{
+    "username": "string",
+    "password": "string"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+    "token": "your-jwt-token",
+    "user": {
+        "id": 1,
+        "username": "string",
+        "role": "teacher" | "student"
+    }
+}
+```
+
+### 3. Create Meeting
+```http
+POST /classroom/create/
+```
+
+**Request Body:**
+```json
+{
+    "name": "string",
+    "meeting_id": "string",
+    "description": "string" // optional
+}
+```
+
+**Response (201 Created):**
+```json
+{
+    "id": "uuid",
+    "name": "string",
+    "teacher": "string",
+    "description": "string",
+    "created_at": "datetime",
+    "is_active": true,
+    "meeting_id": "string"
+}
+```
+
+### 4. Join Meeting
+```http
+POST /classroom/{meeting_id}/join/
+```
+
+**Response (201 Created):**
+```json
+{
+    "detail": "Successfully joined the room",
+    "room": {
+        "meeting_id": "string",
+        "name": "string",
+        "teacher": "string"
+    }
+}
+```
+
+### 5. Leave Meeting
+```http
+POST /classroom/{meeting_id}/leave/
+```
+
+**Response (200 OK):**
+```json
+{
+    "detail": "Successfully left the room"
+}
+```
+
+### 6. Deactivate Meeting
+```http
+POST /classroom/{meeting_id}/deactivate/
+```
+
+**Response (200 OK):**
+```json
+{
+    "detail": "Room deactivated successfully"
+}
+```
+
+### 7. List Participants
+```http
+GET /classroom/{meeting_id}/participants/
+```
+
+**Response (200 OK):**
+```json
+[
+    {
+        "user": 1,
+        "username": "string",
+        "joined_at": "datetime",
+        "is_tracking": true
+    }
+]
+```
+
+### 8. Save Focus Data
+```http
+POST /classroom/{meeting_id}/focus-data/
+```
+
+**Request Body:**
+```json
+{
+    "student_username": "string",
+    "data": {} // any JSON data
+}
+```
+
+**Response (201 Created):**
+```json
+{
+    "detail": "Saved data successfully"
+}
+```
+
+### 9. Get Student Focus Data
+```http
+GET /classroom/{meeting_id}/get-focus-data/?student_username={username}
+```
+
+**Response (200 OK):**
+```json
+{
+    "room": "uuid",
+    "room_name": "string",
+    "user": 1,
+    "username": "string",
+    "data": {},
+    "timestamp": "datetime"
+}
+```
+
+### 10. Get All Focus Data
+```http
+GET /classroom/{meeting_id}/get-all-focus-data/
+```
+
+**Response (200 OK):**
+```json
+[
+    {
+        "room": "uuid",
+        "room_name": "string",
+        "user": 1,
+        "username": "string",
+        "data": {},
+        "timestamp": "datetime"
+    }
+]
+```
+
+## Error Responses
+All endpoints may return the following error responses:
+
+**401 Unauthorized:**
+```json
+{
+    "detail": "Authentication credentials were not provided."
+}
+```
+
+**403 Forbidden:**
+```json
+{
+    "error": "You don't have permission to perform this action."
+}
+```
+
+**404 Not Found:**
+```json
+{
+    "error": "Resource not found."
+}
+```
+
+**400 Bad Request:**
+```json
+{
+    "error": "Invalid input data."
+    // or field-specific errors
+}
+```
+
+### 5. Leave Meeting
+```http
+POST /classroom/{meeting_id}/leave/
+```
+
+**Response (200 OK):**
+```json
+{
+    "detail": "Successfully left the room"
+}
+```

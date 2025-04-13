@@ -1,7 +1,7 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import {useNavigate} from "react-router-dom"
-// Define types for form state
+import { LoginFormProps } from '../types/props';
+
 interface FormState {
   email: string;
   password: string;
@@ -10,11 +10,7 @@ interface FormState {
   isLoading: boolean;
 }
 
-
-
-const LoginForm: React.FC = () => {
-
-    const navigate = useNavigate();
+const LoginForm: React.FC<LoginFormProps> = ({ onTeacherLogin, onStudentLogin, onSignupClick, onBackClick }) => {
   // Form state using useState with TypeScript
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -22,15 +18,16 @@ const LoginForm: React.FC = () => {
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    setIsLoading(true);
-    navigate("/joinMeeting")
-    // Simulating API call
-    setTimeout(() => {
-      console.log('Login attempt with:', { email, password, rememberMe });
-      setIsLoading(false);
-    }, 1500);
+  const handleSubmit = (): void => {
+      // e.preventDefault();
+      setIsLoading(true);
+      // Simulating API call
+      setTimeout(() => {
+        console.log('Login attempt with:', { email, password, rememberMe });
+        setIsLoading(false);
+      }, 1500);
+
+      onTeacherLogin();
   };
 
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -86,9 +83,13 @@ const LoginForm: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <a href="#" className="text-xs text-blue-600 hover:text-blue-800">
-                Forgot password?
-              </a>
+              {/* <button 
+                type="button" 
+                onClick={onBackClick}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                Back to Home
+              </button> */}
             </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -134,6 +135,7 @@ const LoginForm: React.FC = () => {
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex justify-center"
             disabled={isLoading}
+            onClick={() => handleSubmit()}
           >
             {isLoading ? (
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -146,12 +148,12 @@ const LoginForm: React.FC = () => {
         </form>
         
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
-            </a>
-          </p>
+          <button
+            onClick={onSignupClick}
+            className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+          >
+            Don't have an account? Sign up
+          </button>
         </div>
       </div>
     </div>

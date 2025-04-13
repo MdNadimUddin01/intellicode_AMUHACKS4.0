@@ -1,19 +1,17 @@
 import { useState } from "react";
 import { Calendar, ArrowRight, Users, Video } from "lucide-react";
-import {useMatch, useNavigate} from "react-router-dom"
-const MeetingComponent = () => {
+import { MeetingPageProps } from "../types/props";
 
-  const navigate = useNavigate();
-  const [userRole, setUserRole] = useState(useMatch("/joinMeeting") ? "Student" : "Teacher"); // Default role
+export default function MeetingPage({ mode, onSubmit }: MeetingPageProps) {
   const [meetingTitle, setMeetingTitle] = useState("");
   const [meetingCode, setMeetingCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState("");
+  const [userRole, setUserRole] = useState("Teacher");
 
-  const handleSubmit = (e:any) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault();
 
-    
     if (userRole === "Teacher") {
       if (!meetingTitle.trim()) {
         setMessage("Please enter a meeting title");
@@ -22,7 +20,7 @@ const MeetingComponent = () => {
       // Generate a random meeting code for demonstration
       const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       setMessage(`Meeting "${meetingTitle}" created! Share code: ${generatedCode}`);
-      navigate("/teacherDashBoard")
+      onSubmit();
     } else {
       if (!meetingCode.trim()) {
         setMessage("Please enter a meeting code");
@@ -30,7 +28,7 @@ const MeetingComponent = () => {
       }
       setMessage(`Joining meeting with code: ${meetingCode}`);
 
-      navigate("/studentDashBoard")
+      onSubmit();
     }
     
     setSubmitted(true);
@@ -44,13 +42,6 @@ const MeetingComponent = () => {
     }, 3000);
   };
 
-  const toggleRole = () => {
-    setUserRole(userRole === "Teacher" ? "Student" : "Teacher");
-    setMessage("");
-    setMeetingTitle("");
-    setMeetingCode("");
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -59,12 +50,12 @@ const MeetingComponent = () => {
           <span className="text-sm mr-2 text-gray-600">
             {userRole === "Teacher" ? "Teacher Mode" : "Student Mode"}
           </span>
-          {/* <button
-            onClick={toggleRole}
+          <button
+            // onClick={o}
             className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-medium hover:bg-blue-200 transition-colors"
           >
-            Switch Role
-          </button> */}
+            Back
+          </button>
         </div>
       </div>
 
@@ -87,7 +78,10 @@ const MeetingComponent = () => {
       <form onSubmit={handleSubmit}>
         {userRole === "Teacher" ? (
           <div className="mb-4">
-            <label htmlFor="meetingTitle" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="meetingTitle"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Meeting Title
             </label>
             <div className="relative">
@@ -99,12 +93,18 @@ const MeetingComponent = () => {
                 placeholder="Math Class - Geometry Review"
                 className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <Calendar className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              <Calendar
+                className="absolute left-3 top-2.5 text-gray-400"
+                size={18}
+              />
             </div>
           </div>
         ) : (
           <div className="mb-4">
-            <label htmlFor="meetingCode" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="meetingCode"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Meeting Code
             </label>
             <div className="relative">
@@ -116,9 +116,7 @@ const MeetingComponent = () => {
                 placeholder="Enter 6-digit code"
                 className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <div className="absolute left-3 top-2.5 text-gray-400">
-                #
-              </div>
+              <div className="absolute left-3 top-2.5 text-gray-400">#</div>
             </div>
           </div>
         )}
@@ -142,14 +140,16 @@ const MeetingComponent = () => {
       </form>
 
       {message && (
-        <div className={`mt-4 p-3 rounded-md text-sm ${
-          message.includes("Please") ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"
-        }`}>
+        <div
+          className={`mt-4 p-3 rounded-md text-sm ${
+            message.includes("Please")
+              ? "bg-yellow-50 text-yellow-700"
+              : "bg-green-50 text-green-700"
+          }`}
+        >
           {message}
         </div>
       )}
     </div>
   );
-};
-
-export default MeetingComponent;
+}

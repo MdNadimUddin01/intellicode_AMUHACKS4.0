@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Clock, Users, Bell, BarChart, AlertTriangle, CheckCircle, Menu, X, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { TeacherDashboardProps } from "../types/props";
 
 // Define TypeScript interfaces
 interface Student {
@@ -22,7 +23,7 @@ interface WindowSize {
 type SortBy = "name" | "email" | "focus" | "joinTime";
 type SortDirection = "asc" | "desc";
 
-const TeacherDashboard = () => {
+const TeacherDashboard = ({ onLogout }: TeacherDashboardProps) => {
   const [meetingTime, setMeetingTime] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortBy>("name");

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff, User, UserCheck } from 'lucide-react';
+import { SignupFormProps } from '../types/props';
 
-
-
-export default function SignupForm() {
+export default function SignupForm({ onSignupSuccess, onBackClick }: SignupFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -12,8 +11,7 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
 
-  const handleSubmit = (e:any) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     
     if (password !== confirmPassword) {
       setPasswordMatch(false);
@@ -27,6 +25,8 @@ export default function SignupForm() {
       console.log('Signup attempt with:', { email, password, role });
       setIsLoading(false);
     }, 1500);
+
+    onSignupSuccess(role === 'teacher');
   };
 
   const handleConfirmPasswordChange = (e:any) => {
@@ -167,6 +167,7 @@ export default function SignupForm() {
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex justify-center"
             disabled={isLoading}
+            onClick={handleSubmit}
           >
             {isLoading ? (
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -179,12 +180,15 @@ export default function SignupForm() {
         </form>
         
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </a>
-          </p>
+          <div className="text-sm">
+            <button
+              type="button"
+              onClick={onBackClick}
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              Back to Home
+            </button>
+          </div>
         </div>
       </div>
     </div>

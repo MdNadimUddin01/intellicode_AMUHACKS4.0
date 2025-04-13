@@ -7,23 +7,14 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useNavigate , Link} from "react-router";
+import { WXTHomePageProps } from "../types/props";
 
-export default function WXTHomePage() {
-  const navigate = useNavigate();
-
+export default function WXTHomePage({
+  onLoginClick,
+  onSignupClick,
+}: WXTHomePageProps) {
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  const handleLogin = () => {
-    console.log("Navigating to login...");
-    navigate("/login");
-  };
-
-  const handleSignup = () => {
-    console.log("Navigating to signup...");
-    navigate("/signup");
-  };
 
   const features = [
     {
@@ -70,15 +61,6 @@ export default function WXTHomePage() {
             </span>
           </div>
 
-          {/* For larger screens - show both buttons */}
-          <div className="hidden sm:flex space-x-3">
-            <Link  to={"/login"} className="px-4 py-1.5 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-50 transition-colors text-sm">
-              Log In
-            </Link>
-            <Link to="/signup" className="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
-              Sign Up
-            </Link>
-          </div>
 
           {/* For small screens - show user icon */}
           <div className="sm:hidden">
@@ -116,14 +98,14 @@ export default function WXTHomePage() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => onLoginClick()}
               className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium flex items-center justify-center sm:justify-start"
             >
               Log In
               <ArrowRight className="ml-2 h-4 w-4" />
             </button>
             <button
-              onClick={() => navigate("/signup")}
+              onClick={() => onSignupClick()}
               className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
             >
               Sign Up

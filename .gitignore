@@ -24,3 +24,20 @@ web-ext.config.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Django
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.sqlite
+*.log
+
+# python
+*.egg-info
+*.egg
+*.env
+*.venv
+*.env.*

@@ -86,20 +86,158 @@ Update `wxt.config.ts` with:
 
 ## 🚀 Running the App
 
-### ▶️ Start Backend:
-```bash
-cd backend
-python app.py
+### 🔧 Prerequisites
+- Node.js (v18+)
+- Python (v3.8+)
+- PostgreSQL (v14+)
+- Chrome or Firefox
+
+### 📁 Project Structure
 ```
-Or if using FastAPI:
-```bash
-uvicorn main:app --reload
+intellicode_AMUHACKS4.0/
+├── backend/                # Django backend
+│   ├── src/               # Source code
+│   │   ├── meeting_room/  # Main app
+│   │   │   ├── models.py
+│   │   │   ├── views.py
+│   │   │   └── serializers.py
+│   │   └── config.py      # Configuration
+│   └── manage.py          # Django management
+├── entrypoints/           # Frontend
+│   └── popup/            # React + TypeScript
+│       ├── src/          # Source code
+│       │   ├── components/
+│       │   └── html/     # HTML templates
+│       └── package.json
+└── assets/               # Static assets
+    └── screenshots/      # Application screenshots
 ```
 
-### ▶️ Start Frontend:
+### 🐍 Backend Setup
+1. Navigate to backend directory:
+```bash
+cd backend
+```
+
+2. Create and activate virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+5. Apply database migrations:
+```bash
+python manage.py migrate
+```
+
+6. Create superuser (optional):
+```bash
+python manage.py createsuperuser
+```
+
+7. Run the backend server:
+```bash
+python manage.py runserver
+```
+
+### 📦 Frontend Setup
+1. Navigate to frontend directory:
+```bash
+cd entrypoints/popup
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Run in development mode:
 ```bash
 npm run dev
 ```
+
+5. Build for production:
+```bash
+npm run build
+```
+
+### ⚙️ Extension Setup
+1. Load the extension in Chrome:
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode" in the top right
+   - Click "Load unpacked" and select the `entrypoints/popup/dist` folder
+
+2. Load the extension in Firefox:
+   - Open Firefox and go to `about:debugging`
+   - Click "This Firefox"
+   - Click "Load Temporary Add-on" and select any file from the `entrypoints/popup/dist` folder
+
+### 📝 Configuration
+1. Backend Configuration:
+   - Edit `backend/.env`:
+   ```
+   DEBUG=True
+   SECRET_KEY=your_secret_key
+   DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+   ALLOWED_HOSTS=localhost,127.0.0.1
+   CORS_ORIGIN_WHITELIST=http://localhost:5173
+   ```
+
+2. Frontend Configuration:
+   - Edit `entrypoints/popup/.env`:
+   ```
+   VITE_BACKEND_URL=http://localhost:8000
+   VITE_WS_URL=ws://localhost:8000
+   ```
+
+### 🎯 Running in Production
+1. Backend:
+```bash
+# Install gunicorn
+pip install gunicorn
+
+# Run with gunicorn
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+```
+
+2. Frontend:
+```bash
+# Build for production
+npm run build
+
+# Serve the static files
+python -m http.server 5173 --directory dist
+```
+
+### 🛠️ Development Tips
+1. Hot Reload:
+   - Backend: Use `python manage.py runserver --noreload`
+   - Frontend: Use `npm run dev`
+
+2. Debugging:
+   - Backend: Use Django's built-in debugger
+   - Frontend: Use Chrome DevTools
+
+3. Testing:
+   - Backend: Use Django's test framework
+   - Frontend: Use Jest and React Testing Library
 
 ---
 
@@ -207,4 +345,3 @@ npm run build
 3. Commit your changes: `git commit -m "Add feature"`
 4. Push the branch: `git push origin feature-name`
 5. Open a Pull Request 🙌
-

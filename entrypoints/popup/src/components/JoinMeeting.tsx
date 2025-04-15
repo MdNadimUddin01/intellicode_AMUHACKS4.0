@@ -1,13 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Users, ArrowRight } from "lucide-react";
 import { backendUrl } from "../../environment";
 import axios from "axios";
 
-interface JoinMeetingProps {
-  onSubmit: () => void;
-}
-
-const JoinMeeting: React.FC<JoinMeetingProps> = ({ onSubmit }) => {
+const JoinMeeting: React.FC = () => {
+  const navigate = useNavigate();
   const [meetingCode, setMeetingCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState("");
@@ -36,12 +34,12 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({ onSubmit }) => {
           },
         }
       );
-      
+
       console.log(data);
 
       localStorage.setItem("studentMeetingInfo", JSON.stringify(data.room));
       setMessage(`Joining meeting with code: ${meetingCode}`);
-      onSubmit();
+      navigate("/student-dashboard");
     } catch (error: any) {
       console.error("Error joining meeting:", error);
       setMessage(
@@ -65,7 +63,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({ onSubmit }) => {
           <span className="text-sm mr-2 text-gray-600">Student Mode</span>
           <button
             className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-medium hover:bg-blue-200 transition-colors"
-            onClick={() => onSubmit()}
+            onClick={() => navigate("/student-dashboard")}
           >
             Back
           </button>

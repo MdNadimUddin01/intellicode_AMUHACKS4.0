@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Clock,
   X,
@@ -13,11 +14,6 @@ import FocusDetection from "./FocusDetection";
 import { backendUrl } from "../../environment";
 import axios from "axios";
 
-interface StudentDashboardProps {
-  onLogout: () => void;
-  onLeaveMeeting: () => void;
-}
-
 interface Meeting {
   meeting_id: string;
   name: string;
@@ -25,10 +21,8 @@ interface Meeting {
   // Add other meeting properties here if needed
 }
 
-export default function StudentDashboard({
-  onLogout,
-  onLeaveMeeting,
-}: StudentDashboardProps) {
+export default function StudentDashboard() {
+  const navigate = useNavigate();
   const [meetingTime, setMeetingTime] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
@@ -73,7 +67,7 @@ export default function StudentDashboard({
       return {};
     }
     console.log("Using token:", token.substring(0, 10) + "..."); // Log first 10 chars for debugging
-    return { Authorization: `Bearer ${token}` };
+    return { Authorization: `Token ${token}` };
   };
 
   const leaveMeeting = async () => {
@@ -87,7 +81,7 @@ export default function StudentDashboard({
       );
 
       localStorage.removeItem("studentMeetingInfo");
-      onLeaveMeeting();
+      navigate("/join-meeting");
       console.log("LEFT", data);
 
       return data;
@@ -107,7 +101,9 @@ export default function StudentDashboard({
 
     try {
       await leaveMeeting();
-      onLogout();
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      navigate("/");
 
       console.log("HELLO ");
     } catch (error) {
@@ -181,9 +177,8 @@ export default function StudentDashboard({
 
               const queryString = new URLSearchParams(data).toString();
 
-              chrome.tabs.create({
-                url: `http://127.0.0.1:3000/intellicode/entrypoints/popup/src/html/focus.html?${queryString}`,
-              });
+              // Use window.open instead of chrome.tabs.create for compatibility
+              window.open(`http://127.0.0.1:3000/intellicode/entrypoints/popup/src/html/focus.html?${queryString}`, '_blank');
             }}
           >
             <svg

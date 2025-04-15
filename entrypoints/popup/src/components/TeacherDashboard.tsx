@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Clock,
@@ -14,7 +15,6 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { backendUrl } from "../../environment";
-import { TeacherDashboardProps } from "../types/props";
 
 // Define TypeScript interfaces
 // interface Student {
@@ -37,10 +37,8 @@ interface WindowSize {
 type SortBy = "name" | "email" | "focus" | "joinTime";
 type SortDirection = "asc" | "desc";
 
-const TeacherDashboard = ({
-  onLogout,
-  onLeaveMeeting,
-}: TeacherDashboardProps) => {
+const TeacherDashboard = () => {
+  const navigate = useNavigate();
   const [meetingTime, setMeetingTime] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortBy>("name");
@@ -94,7 +92,7 @@ const TeacherDashboard = ({
         }
       );
       localStorage.removeItem("teacherMeetingInfo");
-      onLeaveMeeting();
+      navigate("/create-meeting");
     } catch (error) {
       console.log(error);
     }
@@ -429,8 +427,13 @@ const TeacherDashboard = ({
 
               <div className="pt-4 flex flex-col gap-4 border-t border-gray-200">
                 <button
-                  onClick={handleMeeting}
-                  className="px-3 py-2 w-full rounded-md bg-blue-600 text-white text-sm"
+                  onClick={() => {
+                    localStorage.removeItem("user");
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("teacherMeetingInfo");
+                    navigate("/");
+                  }}
+                  className="px-3 py-1.5 text-xs sm:text-sm bg-red-500 hover:bg-red-600 text-white rounded-md"
                 >
                   End Meeting
                 </button>

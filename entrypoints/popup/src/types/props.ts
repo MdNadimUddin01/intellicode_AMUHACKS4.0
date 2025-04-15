@@ -22,7 +22,7 @@ export interface TeacherDashboardProps {
 
 export interface StudentDashboardProps {
   onLogout: () => void;
-  onJoinMeeting: () => void;
+  onLeaveMeeting: () => void;
 }
 
 export interface MeetingPageProps {

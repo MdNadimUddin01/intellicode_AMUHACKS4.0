@@ -1,13 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Video, Calendar, ArrowRight, IdCard } from "lucide-react";
 import { backendUrl } from "../../environment";
 import axios from "axios";
 
-interface CreateMeetingProps {
-  onSubmit: () => void;
-}
-
-const CreateMeeting: React.FC<CreateMeetingProps> = ({ onSubmit }) => {
+const CreateMeeting: React.FC = () => {
+  const navigate = useNavigate();
   const [meetingTitle, setMeetingTitle] = useState("");
   const [meetingId, setMeetingId] = useState("");
   const [meetingDescription, setMeetingDescription] = useState("");
@@ -53,7 +51,7 @@ const CreateMeeting: React.FC<CreateMeetingProps> = ({ onSubmit }) => {
       setMessage(
         `Meeting "${meetingTitle}" created! Share code: ${generatedCode}`
       );
-      onSubmit();
+      navigate("/teacher-dashboard");
     } catch (error: any) {
       console.error("Error creating meeting:", error);
       setMessage(
@@ -79,7 +77,7 @@ const CreateMeeting: React.FC<CreateMeetingProps> = ({ onSubmit }) => {
           <span className="text-sm mr-2 text-gray-600">Teacher Mode</span>
           <button
             className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-medium hover:bg-blue-200 transition-colors"
-            onClick={() => onSubmit()}
+            onClick={() => navigate("/teacher-dashboard")}
           >
             Back
           </button>

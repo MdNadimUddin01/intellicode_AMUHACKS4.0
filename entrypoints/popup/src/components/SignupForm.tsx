@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { Lock, Mail, Eye, EyeOff, User, UserCheck, User2 } from "lucide-react";
-import { SignupFormProps } from "../types/props";
 import { backendUrl } from "../../environment";
 import axios from "axios";
+import { UserContext } from "../../App";
 
-export default function SignupForm({
-  onSignupSuccess,
-  onBackClick,
-}: SignupFormProps) {
+const SignupForm: React.FC = () => {
+  const navigate = useNavigate();
+  const { setUser } = useContext(UserContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,8 +47,12 @@ export default function SignupForm({
       localStorage.setItem("token", JSON.stringify(data.token));
       localStorage.setItem("user", JSON.stringify(data.user));
       console.log("Registration successful:", data);
+      
+      // Update the user context so ProtectedRoute knows we're authenticated
+      setUser(data.user);
+      
       const is_teacher = data.user.role === "teacher";
-      onSignupSuccess(is_teacher);
+      navigate(is_teacher ? "/create-meeting" : "/join-meeting");
     } catch (err: any) {
       console.error("Registration error:", err);
       const errorMessage =
@@ -288,7 +292,7 @@ export default function SignupForm({
           <div className="text-sm">
             <button
               type="button"
-              onClick={onBackClick}
+              onClick={() => navigate("/")}
               className="font-medium text-blue-600 hover:text-blue-500"
             >
               Back to Home
@@ -298,4 +302,6 @@ export default function SignupForm({
       </div>
     </div>
   );
-}
+};
+
+export default SignupForm;
